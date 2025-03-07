@@ -1,6 +1,3 @@
-:: Marker Disclaimer: All contents of this file have been AI-generated
-:: Starts project.
-
 @echo off
 
 :: Announce setup
@@ -10,7 +7,26 @@ echo Application will start automatically.
 :: Print empty line and info line
 echo.
 echo Updating libraries...
-@echo off
+
+:: Check if updater.cmd exists at the correct location
+if not exist "lib\updater.cmd" (
+    echo updater.cmd not found in lib directory.
+    exit /b
+) 
+
+cd lib
+
+:: If updater.cmd exists, run it and show the output in the console
+call updater.cmd || (
+    echo Updater failed. Check the output above for details.
+    echo Skipping to next steps...
+)
+
+:: Print empty line and info line
+echo.
+echo Installing packages...
+
+cd ..
 
 :: Install the project in editable mode (suppress output unless there's an error)
 pip install -e . >nul 2>&1 || (

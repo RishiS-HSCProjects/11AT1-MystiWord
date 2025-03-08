@@ -64,7 +64,7 @@ class Game:
                 print("Error: Invalid letter.") # Notifies the player something went wrong.
             letter = input("Guess a letter: ") # Input for the letter
 
-        word = self.wordManager.wordData.word # Stores the word in this easier variable 
+        word = self.wordManager.word # Stores the word in this easier variable 
 
         foundLetters = [i for i in range(len(word)) if word.startswith(letter, i)] # Finds positions where the letters in self.word is equal to the letter.
         
@@ -96,10 +96,9 @@ class Game:
 
         os.system("cls" if os.name == "nt" else "clear") # Clear system logs
 
-        wordData = self.wordManager.wordData # Saves wordData in a shorter variable
-        word = wordData.word # Saves word in a shorter variable
+        word = self.wordManager.word # Saves word in a shorter variable
 
-        print("Guess the word: " + wordData.difficulty.formatDifficulty(upperCase=True) + f" MODE               {self.lives} lives remaining!") # Displays the mode
+        print("Guess the word: " + self.wordManager.difficulty.formatDifficulty(upperCase=True) + f" MODE               {self.lives} lives remaining!") # Displays the mode
 
         # [PLACEHOLDER] Theme and game needs to go here
 
@@ -133,9 +132,31 @@ class WordManager:
         if not isinstance(difficulty, WordManager.Difficulties):
             # If difficulty was set to None (for randomisation) or an invalid type, randomise difficulty to avoid an error.
             difficulty = random.choice(list(WordManager.Difficulties))  # Randomly select a difficulty
-        print(difficulty.value)
         
-        self.wordData = self.WordData(difficulty)
+        self.difficulty = difficulty
+
+        # Download word repo
+        import nltk
+        from nltk.corpus import words
+
+        # Download word repo if not already downloaded
+        nltk.download('words')
+
+        # Define word length range based on difficulty
+        if difficulty == WordManager.Difficulties.EASY:
+            min_len, max_len = 4, 5
+        elif difficulty == WordManager.Difficulties.MEDIUM:
+            min_len, max_len = 6, 7
+        elif difficulty == WordManager.Difficulties.HARD:
+            min_len, max_len = 8, 15
+        else:
+            raise ValueError("Unknown difficulty") # Raise error if the diffculty does not exist.
+
+        word_list = [word.lower() for word in words.words() if min_len <= len(word) <= max_len] #Filter words that fall within the specified length range
+        
+        random.shuffle(word_list) # Shuffle and select a random word
+        
+        self.word = random.choice(word_list[:10000])
 
     class Difficulties (Enum):
         EASY = "Easy"
@@ -177,23 +198,6 @@ class WordManager:
 
             # Apply color formatting
             return self.getColour() + name + (resetColour if isinstance(resetColour, str) else Fore.RESET)
-    class WordData (DataManager):
-        def __init__(self, difficulty: 'WordManager.Difficulties' = None):
-            super().__init__(os.path.join(os.path.dirname(__file__), "wordsLibrary"), self.DatabaseType.LIST) # Argument 0 sets the database's datapath to "...\\GTWAssets\wordsLibrary". Argument 1 defines the database as a list database.
-
-            self.difficulty = difficulty # Make difficulty globally accessible
-            
-            try:
-                self.createDatafile(self.difficulty.value) # Creates datafile if it doesn't exist (prevents errors)
-            except DataManagerErrors.PathExists:
-                pass # If path exists, ignore creation.
-            database = self.getData(difficulty.value) # Converts .json script to a dictionary
-            self.word = random.choice(database) # Returns a random word
-            self.wordList = list(self.word)
-        
-        def setData(self, identifier: str, field: DataFields, newVal) -> None:
-            # We also don't want the software editing any words in the database. Overriding this function will stop the software from accidentally doing that.
-            raise NotImplementedError("Editing and creating words are not allowed in this database.")
 
 
 def runGame():

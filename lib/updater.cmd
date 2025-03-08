@@ -1,6 +1,8 @@
 :: Marker Disclaimer: All contents of this file have been AI-generated
 :: Updates the required APIs directly from GitHub.
 
+:: ignore script
+exit /b 0 
 @echo off
 setlocal enabledelayedexpansion
 

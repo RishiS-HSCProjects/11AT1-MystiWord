@@ -10,8 +10,7 @@
 *.userosscache
 *.sln.docstates
 Aeternium.egg-info/*
-lib/libData
-lib/libForms
+lib/*
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

@@ -137,30 +137,44 @@ class WordManager:
         self.difficulty = difficulty
 
         class LoadingBarStatus (Enum):
+            """
+            Statuses to tell the systems which messages to display.
+            """
             DOWNLOADING_WORDS = 0
             FILTERING_WORDS = 1
             RANDOMISING_WORDS = 2
             CHOOSING_WORD = 3
+            pass
 
         def sendLoadingBar(status: "LoadingBarStatus") -> None:
-            assets.clear_console()
+            assets.clear_console() # Clears the console
 
-            print("Game starting soon...") # Loading message
+            print("Game starting soon...\n") # Loading message
+
+            percentage = round(status.value / len(LoadingBarStatus)) # How much of the bar should be filled
+
+            bar_length = 50 # Horizontal length of the progress bar
+
+            filled_length = int(bar_length * percentage) # Calculate the number of filled blocks
+
+            bar = '[' + '=' * filled_length + ' ' * (bar_length - filled_length) + ']' # Progress bar
+
+            print(f"\n{bar} {percentage * 100:.1f}%\n") # Print the progress bar with percentage
 
             if status.value >= LoadingBarStatus.DOWNLOADING_WORDS.value:
-                print ("\nDownloading words...") # Loading message
+                print("\nDownloading words...") # Loading message
             if status.value >= LoadingBarStatus.FILTERING_WORDS.value:
-                print ("\nFiltering words...") # Filtering message
+                print("\nFiltering words...") # Filtering message
             if status.value >= LoadingBarStatus.RANDOMISING_WORDS.value:
-                print ("\nRandomising words...") # Randomising message
+                print("\nRandomising words...") # Randomising message
             if status.value >= LoadingBarStatus.CHOOSING_WORD.value:
-                print ("\nChoosing word...") # Choosing word message
+                print("\nChoosing word...") # Choosing word message
     
+        sendLoadingBar(LoadingBarStatus.DOWNLOADING_WORDS)
+
         # Download word repo
         import nltk
         from nltk.corpus import words
-
-        sendLoadingBar(LoadingBarStatus.DOWNLOADING_WORDS)
 
         # Download word repo if not already downloaded. Do not output logs here.
         nltk.download('words', quiet=True)

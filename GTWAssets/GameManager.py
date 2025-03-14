@@ -1,8 +1,7 @@
 import sys
 import random
 from enum import Enum
-from colorama import Fore, Back, init
-from functools import partial
+from colorama import Fore, Back, Style, init
 init() # initialies the colorma class
 
 from lib.libData.DataManager import *
@@ -79,7 +78,7 @@ class Game:
             self.correctLetters.append(letter.upper()) # Add letter to correct letters
         else:
             self.incorrectLetters.append(letter.upper()) # Add letter to incorrect letters
-            if self.lives > 0:
+            if self.lives > 1:
                 self.lives -= 1 # Reduce one life.
             else:
                 finishGame(False) # Stop game.
@@ -99,7 +98,7 @@ class Game:
 
         word = self.wordManager.word # Saves word in a shorter variable
 
-        print("Guess the word: " + self.wordManager.difficulty.formatDifficulty(upperCase=True) + f" MODE               {self.lives} lives remaining!") # Displays the mode
+        print("Guess the word: " + self.wordManager.difficulty.formatDifficulty(upperCase=True) + f" MODE               {Fore.RED + self.lives * '♥️' + Style.RESET_ALL}") # Displays the mode
 
         # [PLACEHOLDER] Theme and game needs to go here
 
@@ -146,57 +145,79 @@ class WordManager:
             CHOOSING_WORD = 3
             pass
 
+        class CorpusType (Enum):
+            """ Defines corpus names for easy access """
+            WORDS = 'words' # Type storing a large repository of words in English
+            COMMON = 'brown' # Type storing repository of common words in English
+            pass
+
         def sendLoadingBar(status: "LoadingBarStatus") -> None:
-            assets.clear_console() # Clears the console
+            """ Prints a progress bar to show progress of game creation """
+            assets.clear_console()  # Clears the console
 
-            print("Game starting soon...\n") # Loading message
+            print("Game starting soon...\n")  # Loading message
 
-            percentage = round(status.value / len(LoadingBarStatus)) # How much of the bar should be filled
+            # Calculate the percentage of the progress bar filled based on the current status
+            total_steps = len(LoadingBarStatus) - 1 # Subtract 1 because we want a range from 0 to the last status
+            percentage = status.value / total_steps if total_steps > 0 else 1 # Calculate the progress as a percentage (between 0 and 1)
 
             bar_length = 50 # Horizontal length of the progress bar
 
-            filled_length = int(bar_length * percentage) # Calculate the number of filled blocks
+            filled_length = int(bar_length * percentage) # Calculate the number of filled blocks based on the percentage
 
-            bar = '[' + '=' * filled_length + ' ' * (bar_length - filled_length) + ']' # Progress bar
+            # Create the progress bar string
+            bar = Style.BRIGHT + '[' + Fore.GREEN + '=' * filled_length + Fore.RED + ' ' * (bar_length - filled_length) + ']' + Style.RESET_ALL # Progress bar
 
-            print(f"\n{bar} {percentage * 100:.1f}%\n") # Print the progress bar with percentage
+            print(f"\n{bar} {int(percentage * 100)}%\n") # Print the progress bar with percentage
 
+            # Print the corresponding status message
             if status.value >= LoadingBarStatus.DOWNLOADING_WORDS.value:
-                print("\nDownloading words...") # Loading message
+                print("\nDownloading words...")
             if status.value >= LoadingBarStatus.FILTERING_WORDS.value:
-                print("\nFiltering words...") # Filtering message
+                print("\nFiltering words...")
             if status.value >= LoadingBarStatus.RANDOMISING_WORDS.value:
-                print("\nRandomising words...") # Randomising message
+                print("\nRandomising words...")
             if status.value >= LoadingBarStatus.CHOOSING_WORD.value:
-                print("\nChoosing word...") # Choosing word message
+                print("\nChoosing word...")
     
         sendLoadingBar(LoadingBarStatus.DOWNLOADING_WORDS)
 
-        # Download word repo
-        import nltk
-        from nltk.corpus import words
+        import nltk # Import the Natural Language Toolkit
 
-        # Download word repo if not already downloaded. Do not output logs here.
-        nltk.download('words', quiet=True)
-
-        sendLoadingBar(LoadingBarStatus.FILTERING_WORDS)
-
-        # Define word length range based on difficulty
-        if difficulty == WordManager.Difficulties.EASY:
-            min_len, max_len = 4, 5
-        elif difficulty == WordManager.Difficulties.MEDIUM:
-            min_len, max_len = 6, 7
-        elif difficulty == WordManager.Difficulties.HARD:
-            min_len, max_len = 8, 15
-        else:
+        corpusType = None
+        if difficulty == WordManager.Difficulties.EASY: # Settings to configure if difficulty is easy
+            min_len, max_len = 4, 5 # Define word length range based on difficulty
+            corpusType = CorpusType.COMMON
+        elif difficulty == WordManager.Difficulties.MEDIUM: # Settings to configure if difficulty is Medium
+            min_len, max_len = 6, 7 # Define word length range based on difficulty
+            if random.randint(0, 1) == 0: # Randomly choose word processor
+                corpusType = CorpusType.COMMON
+            else:
+                corpusType = CorpusType.WORDS
+        elif difficulty == WordManager.Difficulties.HARD: # Settings to configure if difficulty is Hard
+            min_len, max_len = 8, 15 # Define word length range based on difficulty
+            corpusType = CorpusType.WORDS
+        else: 
             raise ValueError("Unknown difficulty") # Raise error if the diffculty does not exist.
 
+        word_list = [] # Initialise word_list
+
+        # Download word repo
+        from nltk.corpus import words, brown
+        # Download the necessary corpora if not already downloaded. Do not output logs here.
+        nltk.download(corpusType.value, quiet=True)
+
+        sendLoadingBar(LoadingBarStatus.FILTERING_WORDS)
+        # Select the correct corpus based on corpusType
+        if corpusType == CorpusType.COMMON:
+            word_list = [word.lower() for word in brown.words() if min_len <= len(word) <= max_len]
+        elif corpusType == CorpusType.WORDS:
+            word_list = [word.lower() for word in words.words() if min_len <= len(word) <= max_len]
+
         sendLoadingBar(LoadingBarStatus.RANDOMISING_WORDS)
-        word_list = [word.lower() for word in words.words() if min_len <= len(word) <= max_len] #Filter words that fall within the specified length range
-        
-        random.shuffle(word_list) # Shuffle and select a random word
-        
+        random.shuffle(word_list) # Shuffle the word list
         self.word = random.choice(word_list)
+
         sendLoadingBar(LoadingBarStatus.CHOOSING_WORD)
 
     class Difficulties (Enum):

@@ -190,10 +190,7 @@ class WordManager:
             corpusType = CorpusType.COMMON
         elif difficulty == WordManager.Difficulties.MEDIUM: # Settings to configure if difficulty is Medium
             min_len, max_len = 6, 7 # Define word length range based on difficulty
-            if random.randint(0, 1) == 0: # Randomly choose word processor
-                corpusType = CorpusType.COMMON
-            else:
-                corpusType = CorpusType.WORDS
+            corpusType = CorpusType.COMMON
         elif difficulty == WordManager.Difficulties.HARD: # Settings to configure if difficulty is Hard
             min_len, max_len = 8, 15 # Define word length range based on difficulty
             corpusType = CorpusType.WORDS

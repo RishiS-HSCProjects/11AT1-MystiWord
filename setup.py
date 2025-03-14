@@ -8,9 +8,9 @@ However, this does mean that no class can be protected from external manipulatio
 Regardless, this fix is much better.
 """
 setup(
-    name='Aeternium',
+    name='MystiWord',
     version='0.1',
     packages=find_packages(),
     author='Rishi Sahasrabuddhe',
-    url='https://github.com/RishiS-HSCProjects/11AT1-Aeternium'
+    url='https://github.com/RishiS-HSCProjects/11AT1-MystiWord'
 )

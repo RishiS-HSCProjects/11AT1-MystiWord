@@ -1,4 +1,4 @@
-import os
+import sys
 import random
 from enum import Enum
 from colorama import Fore, Back, init
@@ -7,6 +7,7 @@ init() # initialies the colorma class
 
 from lib.libData.DataManager import *
 from lib.libForms.Form import *
+import GlobalAssets as assets
 
 class Game:
     """ Creates a new game instance and holds all of the data attributed to a running game. """
@@ -94,7 +95,7 @@ class Game:
         Sends the top part of the gameboard.
         """
 
-        os.system("cls" if os.name == "nt" else "clear") # Clear system logs
+        assets.clear_console() # Clears the console
 
         word = self.wordManager.word # Saves word in a shorter variable
 
@@ -135,12 +136,36 @@ class WordManager:
         
         self.difficulty = difficulty
 
+        class LoadingBarStatus (Enum):
+            DOWNLOADING_WORDS = 0
+            FILTERING_WORDS = 1
+            RANDOMISING_WORDS = 2
+            CHOOSING_WORD = 3
+
+        def sendLoadingBar(status: "LoadingBarStatus") -> None:
+            assets.clear_console()
+
+            print("Game starting soon...") # Loading message
+
+            if status.value >= LoadingBarStatus.DOWNLOADING_WORDS.value:
+                print ("\nDownloading words...") # Loading message
+            if status.value >= LoadingBarStatus.FILTERING_WORDS.value:
+                print ("\nFiltering words...") # Filtering message
+            if status.value >= LoadingBarStatus.RANDOMISING_WORDS.value:
+                print ("\nRandomising words...") # Randomising message
+            if status.value >= LoadingBarStatus.CHOOSING_WORD.value:
+                print ("\nChoosing word...") # Choosing word message
+    
         # Download word repo
         import nltk
         from nltk.corpus import words
 
-        # Download word repo if not already downloaded
-        nltk.download('words')
+        sendLoadingBar(LoadingBarStatus.DOWNLOADING_WORDS)
+
+        # Download word repo if not already downloaded. Do not output logs here.
+        nltk.download('words', quiet=True)
+
+        sendLoadingBar(LoadingBarStatus.FILTERING_WORDS)
 
         # Define word length range based on difficulty
         if difficulty == WordManager.Difficulties.EASY:
@@ -152,11 +177,13 @@ class WordManager:
         else:
             raise ValueError("Unknown difficulty") # Raise error if the diffculty does not exist.
 
+        sendLoadingBar(LoadingBarStatus.RANDOMISING_WORDS)
         word_list = [word.lower() for word in words.words() if min_len <= len(word) <= max_len] #Filter words that fall within the specified length range
         
         random.shuffle(word_list) # Shuffle and select a random word
         
-        self.word = random.choice(word_list[:10000])
+        self.word = random.choice(word_list)
+        sendLoadingBar(LoadingBarStatus.CHOOSING_WORD)
 
     class Difficulties (Enum):
         EASY = "Easy"
@@ -201,7 +228,7 @@ class WordManager:
 
 
 def runGame():
-    os.system("cls" if os.name == "nt" else "clear") # Clear system logs
+    assets.clear_console() # Clears the console
     game = Game() # Create new game class
     game.playGame() # Run game
 

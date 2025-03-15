@@ -31,11 +31,12 @@ echo Installing packages...
 
 cd ..
 
-:: Install the project in editable mode (suppress output unless there's an error)
-pip install -e . >nul 2>&1 || (
-    echo Installation failed. Please try again. Exiting...
-    goto ERROR_TITLE
-)
+@REM TODO:REMOVE CODE
+@REM :: Install the project in editable mode (suppress output unless there's an error)
+@REM pip install -e . >nul 2>&1 || (
+@REM     echo Installation failed. Please try again. Exiting...
+@REM     goto ERROR_TITLE
+@REM )
 
 :: Print empty line and info line
 echo.
@@ -52,8 +53,8 @@ python -c "from GlobalAssets import clear_console; clear_console()"
 :: Set app title
 python -c "from GlobalAssets import set_title; set_title()"
 
-:: Run the script (module) fol2.fol3.Class2
-python -m GTWAssets.GameManager || (
+:: Run the script (module)
+python -m GameManager || (
     echo Python script failed. Exiting...
     goto ERROR_TITLE
 )

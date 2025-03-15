@@ -3,6 +3,9 @@
 :: Set app title
 python -c "from GlobalAssets import set_title; set_title('Starting')"
 
+:: Print fancy title
+python -c "from GlobalAssets import getTitle; print(getTitle())"
+
 :: Announce setup
 echo Setting up application. Please wait.
 echo Application will start automatically.
@@ -53,7 +56,7 @@ python -c "from GlobalAssets import clear_console; clear_console()"
 python -c "from GlobalAssets import set_title; set_title()"
 
 :: Run the script (module)
-python -m GameManager || (
+python -m Main || (
     echo Python script failed. Exiting...
     goto ERROR_TITLE
 )

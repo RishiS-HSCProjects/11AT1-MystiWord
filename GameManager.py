@@ -20,18 +20,10 @@ class Game:
         self.form.addOption(Back.RED + Fore.WHITE + "Random" + Fore.RESET + Back.RESET, lambda _: self.createWordManager()) # WordData will handle cases where the difficulty is not set.
 
         self.form.settings.editSetting(
-            FormSettings.Setting.HEADER,
-            """
- ██████╗ ██╗   ██╗███████╗███████╗███████╗    ████████╗██╗  ██╗███████╗    ██╗    ██╗ ██████╗ ██████╗ ██████╗ 
-██╔════╝ ██║   ██║██╔════╝██╔════╝██╔════╝    ╚══██╔══╝██║  ██║██╔════╝    ██║    ██║██╔═══██╗██╔══██╗██╔══██╗
-██║  ███╗██║   ██║█████╗  ███████╗███████╗       ██║   ███████║█████╗      ██║ █╗ ██║██║   ██║██████╔╝██║  ██║
-██║   ██║██║   ██║██╔══╝  ╚════██║╚════██║       ██║   ██╔══██║██╔══╝      ██║███╗██║██║   ██║██╔══██╗██║  ██║
-╚██████╔╝╚██████╔╝███████╗███████║███████║       ██║   ██║  ██║███████╗    ╚███╔███╔╝╚██████╔╝██║  ██║██████╔╝
- ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚══════╝       ╚═╝   ╚═╝  ╚═╝╚══════╝     ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝                                                                                                                                                           
-            """) # Creates a pretty header
+            FormSettings.Setting.HEADER, assets.getTitle()) # Creates a pretty header using the ANSI SHADOW ASCII art
         self.form.settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Clears the console after an option has been selected.
 
-        self.form.send()
+        self.form.send() # Sends the form to the user
 
         self.foundLetterPositions = [] # Initialises the array with all of the correct letters. This will be the index to wher the correct letter is.
         self.correctLetters = [] # Initialises the array with all of the correct letters. This is an array of strings.
@@ -70,7 +62,8 @@ class Game:
         
         def finishGame(win: bool = True) -> None:
             self.sendGameBoard(win) # Show winning board.
-            input("\nPress enter to play again! ") # Holder for user to observe the board.
+            print()
+            os.system("pause") # Holder for user to observe the board.
             runGame()
 
         if len(foundLetters) > 0: # If the player found a correct letter.
@@ -263,6 +256,3 @@ def runGame():
     assets.clear_console() # Clears the console
     game = Game() # Create new game class
     game.playGame() # Run game
-
-if __name__ == "__main__":
-    runGame()

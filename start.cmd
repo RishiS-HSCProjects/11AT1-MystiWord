@@ -14,10 +14,10 @@ echo Updating project libraries...
 :: Check if updater.cmd exists at the correct location
 if not exist "lib\updater.cmd" (
     echo updater.cmd not found in lib directory.
-    goto ERROR_TITLE
 )
 
 cd lib
+
 
 :: If updater.cmd exists, run it and show the output in the console
 call updater.cmd || (
@@ -27,19 +27,18 @@ call updater.cmd || (
 
 :: Print empty line and info line
 echo.
-echo Installing packages...
 
-cd ..
-
-@REM TODO:REMOVE CODE
+@REM TODO: REMOVE CODE
+@REM echo Installing packages...
+@REM cd ..
 @REM :: Install the project in editable mode (suppress output unless there's an error)
 @REM pip install -e . >nul 2>&1 || (
 @REM     echo Installation failed. Please try again. Exiting...
 @REM     goto ERROR_TITLE
 @REM )
 
-:: Print empty line and info line
-echo.
+@REM :: Print empty line and info line
+@REM echo.
 echo Installing python libraries...
 :: Install all required libraries for the project (suppress output unless there's an error)
 pip install nltk >nul 2>&1 || (
@@ -66,4 +65,4 @@ pause
 :ERROR_TITLE
 python -c "from GlobalAssets import set_title; set_title('Error')"
 pause
-exit /b
+exit /b 1

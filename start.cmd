@@ -44,7 +44,7 @@ echo.
 @REM echo.
 echo Installing python libraries...
 :: Install all required libraries for the project (suppress output unless there's an error)
-pip install nltk >nul 2>&1 || (
+pip install nltk pyreadline3 >nul 2>&1 || (
     echo Library installation failed. Exiting...
     goto ERROR_TITLE
 )
@@ -61,8 +61,8 @@ python -m Main || (
     goto ERROR_TITLE
 )
 
-:: Pause to keep the terminal open (only if everything ran successfully)
-pause
+:: Exit on quit
+exit /b 0
 
 :: Define error title
 :ERROR_TITLE

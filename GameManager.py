@@ -12,12 +12,15 @@ class Game:
     """ Creates a new game instance and holds all of the data attributed to a running game. """
 
     def __init__(self) -> None:
-        self.form = OptionForm("Choose Difficulty")
+        self.form = OptionForm("Choose Difficulty") # Create a choose difficulty form
 
         self.form.addOption(WordManager.Difficulties.EASY.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.EASY))
         self.form.addOption(WordManager.Difficulties.MEDIUM.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.MEDIUM))
         self.form.addOption(WordManager.Difficulties.HARD.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.HARD))
-        self.form.addOption(Back.RED + Fore.WHITE + "Random" + Fore.RESET + Back.RESET, lambda _: self.createWordManager()) # WordData will handle cases where the difficulty is not set.
+        self.form.addOption(Back.RED + Fore.WHITE + "Random", lambda _: self.createWordManager()) # WordData will handle cases where the difficulty is not set.
+        
+        from Main import sendHomePage # Import home page
+        self.form.addOption(Fore.LIGHTBLACK_EX + "Back", lambda: sendHomePage())
 
         self.form.settings.editSetting(
             FormSettings.Setting.HEADER, assets.getTitle()) # Creates a pretty header using the ANSI SHADOW ASCII art
@@ -30,6 +33,8 @@ class Game:
         self.incorrectLetters = [] # Initialises the array with all of the incorrect letters. This is an array of strings.
 
         self.lives = 10 # Starts life count at ten.
+
+        self.xp = 100
 
     def createWordManager(self, difficulty: 'WordManager.Difficulties' = None):
         self.wordManager = WordManager(difficulty)
@@ -47,7 +52,7 @@ class Game:
 
             return isLetter and notGuessed
 
-        letter = None
+        letter = None # Sets letter to none to enter the while loop
         firstIteration = True # Checks if the while loop has ran more than once.
         while not letterValidation(letter): # While the inputted letter is invalid.
             if firstIteration:
@@ -62,9 +67,9 @@ class Game:
         
         def finishGame(win: bool = True) -> None:
             self.sendGameBoard(win) # Show winning board.
-            print()
-            os.system("pause") # Holder for user to observe the board.
-            runGame()
+            assets.pause() # Holder for user to observe the board.
+
+            runGame() # Rerun game
 
         if len(foundLetters) > 0: # If the player found a correct letter.
             self.foundLetterPositions.extend(foundLetters) # Extends the found positions to the total found positions variable.
@@ -73,6 +78,7 @@ class Game:
             self.incorrectLetters.append(letter.upper()) # Add letter to incorrect letters
             if self.lives > 1:
                 self.lives -= 1 # Reduce one life.
+                self.xp -= 10 # Reduce XP by 10
             else:
                 finishGame(False) # Stop game.
 
@@ -111,12 +117,23 @@ class Game:
 
         print()
 
-        if win != None:
+        if win != None: # Handle victory/loss logic
             if win:
-                print(Fore.GREEN + "YOU WIN!" + Fore.RESET)
+                print(Fore.GREEN + Style.BRIGHT + "YOU WIN!" + Fore.RESET) # Victory text
+                print()
+
+                winXP = self.xp # Assign the base xp to winXP.
+                # Add multipliers here
+
+                print(Fore.LIGHTGREEN_EX + f"+ {winXP} XP" + Style.RESET_ALL) # Display the addition of XP
+                assets.getPlayerManager().addXP(assets.logged_in_player, self.xp) # Add XP to account
+
+                assets.getPlayerManager().addWin(assets.logged_in_player) # Register win
+
             else:
                 print(Fore.RED + "YOU LOSE!" + Fore.RESET)
                 print(Fore.YELLOW + f"Word: {word.upper()}" + Fore.RESET)
+                assets.getPlayerManager().addLoss(assets.logged_in_player) # Register loss
 
 class WordManager:
     """ Does everything word-related. All functions relating to the individual words of the game are located here. """
@@ -206,7 +223,10 @@ class WordManager:
 
         sendLoadingBar(LoadingBarStatus.RANDOMISING_WORDS)
         random.shuffle(word_list) # Shuffle the word list
-        self.word = random.choice(word_list)
+        while True: # Loop to keep finding a word till it is valid
+            self.word = random.choice(word_list) # Choose a random word
+            if self.word.isalpha(): # Ensure the word only has letters (Brown words had this issue where numbers would be outputted instead of words.)
+                break
 
         sendLoadingBar(LoadingBarStatus.CHOOSING_WORD)
 

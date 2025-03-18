@@ -22,9 +22,12 @@ def set_title(title: str = None) -> None:
 
     os.system(f"title MystiWord{f': {title}' if title else ''}") # Runs the title command in the app to set the title
 
-from auth import PlayerData
+from auth import PlayerData, LocalData
 def getPlayerManager() -> PlayerData.PlayerDataManager:
     return PlayerData.PlayerDataManager()   
+
+def getLocalData() -> LocalData.LocalDataManager:
+    return LocalData.LocalDataManager()
 
 # Player Data
 logged_in_player = None # Stores logged in player (starts at None)

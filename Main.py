@@ -4,7 +4,7 @@ from lib.libForms.Form import *
 from lib.libData.DataManager import *
 import GlobalAssets as assets
 from GameManager import runGame
-from auth import PlayerData
+from auth import PlayerData, LocalData
 
 def sendHomePage() -> None:
     assets.clear_console() # Clears the console
@@ -57,10 +57,13 @@ def sendLoginFrom() -> None:
 
     def sendSignIn() -> None:
         """ Sends a sign in form to the user. """
+
+        last_logged_in = assets.getLocalData().getDataField(LocalData.LocalDataFields.LAST_LOGGED_IN) # Get the last logged in player
+
         form = InputForm("Sign In", settings=settings) # Creates a sign-in form
         form.registerTextInput( # Registers a text input with validation ensuring the user exists.
             "Username", # Input name
-            tooltip="Leave empty to go back", # Tooltip for exit
+            tooltip=f"Leave empty to autofil to '{Fore.CYAN + last_logged_in + Fore.RESET}'" if last_logged_in else "Leave empty to go back", # Tooltip for exit/autofill
             validation=lambda input: ( # Validation code
                 "Username does not exist" if not Auth.doesUserExist(input.lower()) and input != "" else # Check that username does not exist (or is empty)
                 ("Invalid Username: Please only use letters (a-z) in your username. Do not use spaces or other special characters."  if not input.isalnum() and input != "" else # Invalid if username is not alphanumeric 
@@ -71,7 +74,10 @@ def sendLoginFrom() -> None:
         )
         username = form.send()["Username"][InputForm.DataEntryConsts.RESPONSE].lower().replace(" ", "_") # Set username variable t0 full lowercase and remove spaces
         if username == "":
-            sendLoginFrom() # If operation is aborted, go back to the Login Form.
+            if last_logged_in:
+                username = last_logged_in
+            else:
+                sendLoginFrom() # If operation is aborted, go back to the Login Form.
 
         form = InputForm("Sign In", settings=settings) # Re-create sign-in form if username passed validation
         form.addSeparator(f"Username: {username}") # Display username.
@@ -89,6 +95,7 @@ def sendLoginFrom() -> None:
             return
 
         assets.logged_in_player = username # Set the logged in player to this player. Username acts as the player identifier.
+        assets.getLocalData().setData(LocalData.LocalDataFields.LAST_LOGGED_IN, username) # Set the last logged in player to this player.
 
     def sendSignUp() -> None:
         """ Sends a sign in form to the user. """

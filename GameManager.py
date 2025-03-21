@@ -2,6 +2,8 @@ import sys
 import random
 from enum import Enum
 from colorama import Fore, Back, Style, init
+
+from lib.libData.DataManager import DataFields
 init() # initialies the colorma class
 
 from lib.libData.DataManager import *
@@ -77,10 +79,10 @@ class Game:
             self.correctLetters.append(letter.upper()) # Add letter to correct letters
         else:
             self.incorrectLetters.append(letter.upper()) # Add letter to incorrect letters
-            if self.lives > 1:
+            if self.lives >= 1:
                 self.lives -= 1 # Reduce one life.
                 self.xp -= 10 # Reduce XP by 10
-            else:
+            if self.lives == 0:
                 finishGame(False) # Stop game.
 
 
@@ -103,6 +105,7 @@ class Game:
         print("Guess the word: " + f"{self.wordManager.difficulty.formatDifficulty(upperCase=True)} MODE" + (f"               {Fore.RED + self.lives * '♥️' + Style.RESET_ALL}" if assets.getLocalData().getDataField(LocalDataFields.Settings.SHOW_HEARTS) else "")) # Displays the mode
 
         # [PLACEHOLDER] Theme and game needs to go here
+        print(Themes.Themes.HANGMAN.getStage((10 - self.lives) or 9)) # Placeholder for the theme
 
         gameLines = ["_ "] * len(word) # Creates a gameLines list comprised of one underscore for each letter of the word
 
@@ -288,11 +291,25 @@ class WordManager:
 
 class Themes:
     """ Deals with everything related to themes. """
-    class Themes (Enum):
+    
+    class Themes(Enum):
         HANGMAN = 'hangman'
 
-    class Manager (DataManager):
+        def getName(self) -> str:
+            """ Returns the name of the theme. """
+            theme_data = Themes.Manager().getTheme(self)  # Fetch the theme data
+
+            return theme_data.get('name')  # Fetch the specific theme data
+
+        def getStage(self, stage: int) -> str:
+            """ Returns the name of the theme. """
+            theme_data = Themes.Manager().getTheme(self)  # Fetch the theme data
+
+            return theme_data.get('stages').get(f'{stage}')  # Fetch the specific theme data
+
+    class Manager(DataManager):
         _DATABASE_NAME = 'themes'
+        
         def __init__(self):
             super().__init__(os.path.dirname(__file__), DataManager.DatabaseType.DICT)
         
@@ -303,7 +320,18 @@ class Themes:
             raise DataManagerErrors.ActionNotAllowed()
 
         def getTheme(self, theme: "Themes.Themes") -> dict:
+            """ Retrieve theme data by theme. """
             return self.getData(self._DATABASE_NAME, theme)
+
+        def getData(self, identifier: str, key: "Themes.Themes" = None) -> dict:
+            """ Retrieves data from the database for the given identifier and optional key. """
+            data = super().getData(self._DATABASE_NAME)  # Fetch data from parent class
+
+            # If key is provided, return the specific theme data, otherwise return all data
+            if key is not None:
+                return data.get(key.value, {})
+            return data
+
 
 def runGame():
     assets.clear_console() # Clears the console

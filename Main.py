@@ -191,5 +191,5 @@ def sendLoginFrom() -> None:
     sendHomePage() # Open home page unless any process is aborted.
 
 if __name__ == "__main__":
-    assets.logged_in_player = None # Logs out player
+    assets.logged_in_player = "rishi" # Logs out player
     sendHomePage() # If file is opened from the CMD, it will open the login form first (as no player is signed in).

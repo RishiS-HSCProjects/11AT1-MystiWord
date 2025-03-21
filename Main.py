@@ -37,6 +37,24 @@ Stats:
             sendHomePage()
         form.addOption(Fore.YELLOW + "Stats", sendStatsMenu)
 
+        def sendSettingsMenu() -> None:
+            form = OptionForm("Settings", "Enter a setting option to toggle it.", settings)
+            form.settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------⚙️-------------->")
+
+            local = assets.getLocalData() # Get local data
+
+            def toggleSetting(setting: LocalData.LocalDataFields.Settings) -> None:
+                local.setDataField(setting, not local.getDataField(setting)) # Toggle the setting
+                sendSettingsMenu() # Refresh the settings menu
+
+            for setting in LocalData.LocalDataFields.Settings: # Loop through all settings
+                form.addOption(Fore.LIGHTBLUE_EX + setting.value, lambda self=None, setting=setting: toggleSetting(setting), local.getDataField(setting) and Fore.GREEN + "✅" or Fore.RED + "❌") # Add option to toggle the setting
+
+            form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the home page
+
+            form.send()
+        form.addOption(Fore.LIGHTBLUE_EX + "Settings", sendSettingsMenu)
+
         def logout() -> None:
             form = OptionForm(f"Hey, {assets.logged_in_player}!", Fore.LIGHTRED_EX + "Are you sure you want to log out?", settings=settings) # Create confirmation form for the logout
             def handleLogout() -> None:
@@ -95,7 +113,7 @@ def sendLoginFrom() -> None:
             return
 
         assets.logged_in_player = username # Set the logged in player to this player. Username acts as the player identifier.
-        assets.getLocalData().setData(LocalData.LocalDataFields.LAST_LOGGED_IN, username) # Set the last logged in player to this player.
+        assets.getLocalData().setDataField(LocalData.LocalDataFields.LAST_LOGGED_IN, username) # Set the last logged in player to this player.
 
     def sendSignUp() -> None:
         """ Sends a sign in form to the user. """

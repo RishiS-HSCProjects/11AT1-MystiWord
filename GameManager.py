@@ -7,6 +7,7 @@ init() # initialies the colorma class
 from lib.libData.DataManager import *
 from lib.libForms.Form import *
 import GlobalAssets as assets
+from auth.LocalData import LocalDataFields
 
 class Game:
     """ Creates a new game instance and holds all of the data attributed to a running game. """
@@ -97,7 +98,9 @@ class Game:
 
         word = self.wordManager.word # Saves word in a shorter variable
 
-        print("Guess the word: " + self.wordManager.difficulty.formatDifficulty(upperCase=True) + f" MODE               {Fore.RED + self.lives * '♥️' + Style.RESET_ALL}") # Displays the mode
+        print(assets.getTitle()) # Prints the title banner
+
+        print("Guess the word: " + f"{self.wordManager.difficulty.formatDifficulty(upperCase=True)} MODE" + (f"               {Fore.RED + self.lives * '♥️' + Style.RESET_ALL}" if assets.getLocalData().getDataField(LocalDataFields.Settings.SHOW_HEARTS) else "")) # Displays the mode
 
         # [PLACEHOLDER] Theme and game needs to go here
 
@@ -125,6 +128,9 @@ class Game:
                 winXP = self.xp # Assign the base xp to winXP.
                 # Add multipliers here
 
+                winXP *= self.wordManager.difficulty.getXPMultiplier()
+
+                winXP = round(winXP)
                 print(Fore.LIGHTGREEN_EX + f"+ {winXP} XP" + Style.RESET_ALL) # Display the addition of XP
                 assets.getPlayerManager().addXP(assets.logged_in_player, self.xp) # Add XP to account
 
@@ -176,7 +182,7 @@ class WordManager:
             filled_length = int(bar_length * percentage) # Calculate the number of filled blocks based on the percentage
 
             # Create the progress bar string
-            bar = Style.BRIGHT + '[' + Fore.GREEN + '=' * filled_length + Fore.RED + ' ' * (bar_length - filled_length) + ']' + Style.RESET_ALL # Progress bar
+            bar = Style.BRIGHT + '[' + Fore.GREEN + '=' * filled_length + Fore.RED + ' ' * (bar_length - filled_length) + Style.RESET_ALL + ']'  # Progress bar
 
             print(f"\n{bar} {int(percentage * 100)}%\n") # Print the progress bar with percentage
 
@@ -269,8 +275,35 @@ class WordManager:
                 name = name.lower()
 
             # Apply color formatting
-            return self.getColour() + name + (resetColour if isinstance(resetColour, str) else Fore.RESET)
+            return self.getColour() + name + (resetColour if isinstance(resetColour, str) else Fore.RESET)\
+            
+        def getXPMultiplier(self) -> float:
+            """ Returns the XP multipler that will be applied. """
+            if self == WordManager.Difficulties.EASY:
+                return 0.8
+            elif self == WordManager.Difficulties.MEDIUM:
+                return 1.1
+            elif self == WordManager.Difficulties.HARD:
+                return 1.3
 
+class Themes:
+    """ Deals with everything related to themes. """
+    class Themes (Enum):
+        HANGMAN = 'hangman'
+
+    class Manager (DataManager):
+        _DATABASE_NAME = 'themes'
+        def __init__(self):
+            super().__init__(os.path.dirname(__file__), DataManager.DatabaseType.DICT)
+        
+        def createDatafile(self):
+            raise DataManagerErrors.ActionNotAllowed()
+        
+        def deleteDatafile(self):
+            raise DataManagerErrors.ActionNotAllowed()
+
+        def getTheme(self, theme: "Themes.Themes") -> dict:
+            return self.getData(self._DATABASE_NAME, theme)
 
 def runGame():
     assets.clear_console() # Clears the console

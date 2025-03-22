@@ -3,7 +3,7 @@ from colorama import Fore, Style
 from lib.libForms.Form import *
 from lib.libData.DataManager import *
 import GlobalAssets as assets
-from GameManager import runGame, WordManager
+from GameManager import runGame, WordManager, Themes
 from auth import PlayerData, LocalData
 
 def sendHomePage() -> None:
@@ -42,7 +42,27 @@ Stats:
             assets.pause(Style.DIM) # Pause console to observe stats.
 
             sendHomePage()
-        form.addOption(Fore.YELLOW + "Stats", sendStatsMenu)
+        form.addOption(Fore.LIGHTMAGENTA_EX + "Stats", sendStatsMenu)
+
+    
+        def sendShop() -> None:
+            form = OptionForm("Shop", "Spend your coins on cool items!", settings=settings) # Create shop form
+
+            coins = assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.COINS)
+            form.addSeparator(Fore.YELLOW + f"Coins: {coins}") # Display coins
+
+            for theme in Themes.Themes: # Loop through all themes
+                def handlePurchase() -> None:
+                    pass
+
+                cost = theme.getCost() # Get the cost of the theme
+                form.addOption(theme.getName(), lambda: None, f"Cost: {Fore.RED if cost > coins else Fore.GREEN}{cost} coins") # Add option for each theme
+
+            form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the home page
+
+            form.send() # Send the form
+            pass
+        form.addOption(Fore.YELLOW + "Shop", sendShop)
 
         def sendSettingsMenu() -> None:
             form = OptionForm("Settings", "Enter a setting option to toggle it.", settings)
@@ -227,5 +247,5 @@ def sendLoginFrom() -> None:
     sendHomePage() # Open home page unless any process is aborted.
 
 if __name__ == "__main__":
-    assets.logged_in_player = None # Logs out player
+    assets.logged_in_player = "GUEST" # Logs out player
     sendHomePage() # If file is opened from the CMD, it will open the login form first (as no player is signed in).

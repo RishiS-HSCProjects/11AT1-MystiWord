@@ -107,7 +107,7 @@ class Game:
         print("Guess the word: " + f"{self.wordManager.difficulty.formatDifficulty(upperCase=True)} MODE" + (f"               {hearts}" if hearts else "")) # Displays the mode
 
         # [PLACEHOLDER] Theme and game needs to go here
-        print(Themes.Themes.HANGMAN.getStage((10 - (self.lives if self.lives > 0 else 1)))) # Placeholder for the theme
+        print(Themes.Themes.BOXES.getStage((10 - (self.lives if self.lives > 0 else 1)))) # Placeholder for the theme
 
         gameLines = ["_ "] * len(word) # Creates a gameLines list comprised of one underscore for each letter of the word
 
@@ -304,7 +304,9 @@ class WordManager:
 class Themes:
     """ Deals with everything related to themes. """
     
-    class Themes(Enum):
+    class Themes (Enum):
+        BOXES = 'boxes'
+        BRIDGE = 'bridge'
         HANGMAN = 'hangman'
 
         def getName(self) -> str:
@@ -318,6 +320,11 @@ class Themes:
             theme_data = Themes.Manager().getTheme(self)  # Fetch the theme data
 
             return theme_data.get('stages').get(f'{stage}')  # Fetch the specific theme data
+        
+        def getCost(self) -> int:
+            """ Returns the cost of the theme. """
+            theme_data = Themes.Manager().getTheme(self) # Fetch the theme data
+            return theme_data.get('cost') # Get the amount of coins required to purchase the theme
 
     class Manager(DataManager):
         _DATABASE_NAME = 'themes'

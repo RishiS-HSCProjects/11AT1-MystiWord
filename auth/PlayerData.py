@@ -8,6 +8,7 @@ class PlayerDataFields (DataFields):
     USERNAME = 'username'
     PASSWORD = 'password'
     XP = 'xp'
+    COINS = 'coins'
     WINS = 'wins'
     LOSSES = 'losses'
     EASY_PB = 'easy_pb'
@@ -31,6 +32,7 @@ class PlayerDataManager (DataManager):
     def getDefaultValues(self) -> dict:
         return {
             PlayerDataFields.XP: 0, # Sets XP to 0 on new account creation
+            PlayerDataFields.COINS: 0, # Sets coins to 0 on new account creation
             PlayerDataFields.WINS: 0, # Sets wins to 0 on new account creation
             PlayerDataFields.LOSSES: 0, # Sets losses to 0 on new account creation 
             PlayerDataFields.EASY_PB: None, # Sets personal best to None on new account creation

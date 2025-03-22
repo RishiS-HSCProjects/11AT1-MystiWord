@@ -10,6 +10,9 @@ class PlayerDataFields (DataFields):
     XP = 'xp'
     WINS = 'wins'
     LOSSES = 'losses'
+    EASY_PB = 'easy_pb'
+    MEDIUM_PB = 'medium_pb'
+    HARD_PB = 'hard_pb'
     pass
 
 class PlayerDataErrors (DataManagerErrors):
@@ -29,7 +32,10 @@ class PlayerDataManager (DataManager):
         return {
             PlayerDataFields.XP: 0, # Sets XP to 0 on new account creation
             PlayerDataFields.WINS: 0, # Sets wins to 0 on new account creation
-            PlayerDataFields.LOSSES: 0 # Sets losses to 0 on new account creation 
+            PlayerDataFields.LOSSES: 0, # Sets losses to 0 on new account creation 
+            PlayerDataFields.EASY_PB: None, # Sets personal best to None on new account creation
+            PlayerDataFields.MEDIUM_PB: None, # Sets personal best to None on new account creation
+            PlayerDataFields.HARD_PB: None # Sets personal best to None on new account creation
         }
     
     def addXP(self, player: str, xp: int) -> None:
@@ -60,6 +66,24 @@ class PlayerDataManager (DataManager):
         """ Returns the sum of wins and losses """
         return  int(self.getData(player, PlayerDataFields.WINS)) + int(self.getData(player, PlayerDataFields.LOSSES))
     
+    def getPB(self, player: str, difficulty: str) -> int:
+        """ Returns the personal best for a given difficulty 
+        
+            Returns null if no personal best is set.
+        """
+        
+        difficulty_field = f"{difficulty.lower()}_pb" # Define difficulty field by difficulty name
+        if difficulty_field not in PlayerDataFields.__dict__.values():
+            raise ValueError(f"Invalid difficulty level: {difficulty}") # Raise error if name is incorrect
+        return self.getData(player, difficulty_field) # Return the personal best
+
+    def setPB(self, player: str, difficulty: str, lives: int) -> None:
+        """ Sets the personal best for a given difficulty """
+        difficulty_field = f"{difficulty.lower()}_pb" # Define difficulty field by difficulty name
+        if difficulty_field not in PlayerDataFields.__dict__.values():
+            raise ValueError(f"Invalid difficulty level: {difficulty}") # Raise error if name is incorrect
+        self.setData(player, difficulty_field, lives) # Set the personal best
+
     def getWLR(self, player: str) -> float:
         """ Returns the win-loss ratio """
 
@@ -84,3 +108,13 @@ class PlayerDataManager (DataManager):
 
             import Main
             Main.sendHomePage() # Open login form.
+
+    def renameDatafile(self, old_identifier: str, new_identifier: str) -> None:
+        # Construct the full path to the old and new filenames
+        old_filename = os.path.join(self.datapath, f"{old_identifier}.json")
+        new_filename = os.path.join(self.datapath, f"{new_identifier}.json")
+
+        if os.path.exists(old_filename):
+            os.rename(old_filename, new_filename)
+        else:
+            raise DataManagerErrors.PathNotExists(f"Error: The file with identifier {old_identifier} does not exist.")

@@ -3,7 +3,7 @@ from colorama import Fore, Style
 from lib.libForms.Form import *
 from lib.libData.DataManager import *
 import GlobalAssets as assets
-from GameManager import runGame
+from GameManager import runGame, WordManager
 from auth import PlayerData, LocalData
 
 def sendHomePage() -> None:
@@ -22,14 +22,21 @@ def sendHomePage() -> None:
 
             print(assets.getTitle())
 
+            playerManager = assets.getPlayerManager() # Get player manager
+            getData = lambda field: playerManager.getData(assets.logged_in_player, field) # Get player data
+
             # print stats menu
             print(f"""
 Stats:
-  {Fore.LIGHTGREEN_EX}XP: {assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.XP)}{Style.RESET_ALL}
-  Games Played: {assets.getPlayerManager().getGamesPlayed(assets.logged_in_player)}
-  Wins: {assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.WINS)}
-  Losses: {assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.LOSSES)}
-  WLR: {assets.getPlayerManager().getWLR(assets.logged_in_player)}
+  {Fore.LIGHTGREEN_EX}XP: {getData(PlayerData.PlayerDataFields.XP)}{Style.RESET_ALL}
+  Games Played: {playerManager.getGamesPlayed(assets.logged_in_player)}
+  Wins: {getData(PlayerData.PlayerDataFields.WINS)}
+  Losses: {getData(PlayerData.PlayerDataFields.LOSSES)}
+  WLR: {playerManager.getWLR(assets.logged_in_player)}
+  Points per Win Average: {round(int(getData(PlayerData.PlayerDataFields.XP)) / int(getData(PlayerData.PlayerDataFields.WINS)), 2) if int(getData(PlayerData.PlayerDataFields.WINS)) > 0 else "N/A"}
+  Easy PB: {playerManager.getPB(assets.logged_in_player, WordManager.Difficulties.EASY.value) or "N/A"}
+  Medium PB: {playerManager.getPB(assets.logged_in_player, WordManager.Difficulties.MEDIUM.value) or "N/A"}
+  Hard PB: {playerManager.getPB(assets.logged_in_player, WordManager.Difficulties.HARD.value) or "N/A"}
             """)
 
             assets.pause(Style.DIM) # Pause console to observe stats.
@@ -49,6 +56,35 @@ Stats:
 
             for setting in LocalData.LocalDataFields.Settings: # Loop through all settings
                 form.addOption(Fore.LIGHTBLUE_EX + setting.value, lambda self=None, setting=setting: toggleSetting(setting), local.getDataField(setting) and Fore.GREEN + "✅" or Fore.RED + "❌") # Add option to toggle the setting
+
+            if (assets.logged_in_player == assets.get_guest_identifier()): # If the player is a guest
+                def portStats() -> None:
+                    portStatsSettings = settings # Copy instance of settings
+                    portStatsSettings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------🔁-------------->")
+                    form = InputForm("Port Stats", settings=portStatsSettings) # Create input form
+
+                    form.registerTextInput("Username", validation=lambda input: ("Username already exists" if assets.getPlayerManager().datafileExists(input) else False) or ("Invalid Username: Please only use letters (a-z) in your username. Do not use spaces or other special characters." if not input.isalnum() else False))
+                    username = form.send()["Username"][InputForm.DataEntryConsts.RESPONSE].lower() # Set username variable
+                    
+                    form = InputForm("Port Stats", settings=portStatsSettings) # Create input form
+                    form.addSeparator(f"Username: {username}") # Display username.
+                    form.registerTextInput("Password") # Registers a text input for the password
+                    password = form.send()["Password"][InputForm.DataEntryConsts.RESPONSE] # Set password variable
+
+                    form = OptionForm("Confirm New Account", f"Please confirm the below details:\n  - Username: {username}\n  - Password: {password if password else Fore.RED + 'NOT SET' + Style.RESET_ALL}", settings=settings) # Create confirmation form displaying the username and password
+                    form.addOption(Fore.GREEN + "✅ CONFIRM" + Style.RESET_ALL, lambda: None) # Adds option to confirm the new account.
+                    form.addOption(Fore.RED + "❌ Cancel" + Style.RESET_ALL, sendSettingsMenu) # Adds option to retry sign-up.
+                    form.send() # Sends form to player
+
+                    playerManager = assets.getPlayerManager()
+                    playerManager.renameDatafile(assets.get_guest_identifier(), username) # Rename the guest datafile to the new username
+                    playerManager.setData(username, PlayerData.PlayerDataFields.IDENTIFIER, username) # Set the password for the new account
+                    playerManager.setData(username, PlayerData.PlayerDataFields.PASSWORD, password) # Set the password for the new account
+                    assets.logged_in_player = username # Set the logged in player to the new username
+                    sendHomePage() # Return to the home page
+
+                form.addSeparator() # Add a separator
+                form.addOption(Fore.LIGHTCYAN_EX + "Port Guest Stats", lambda: portStats(), "Port guest stats to a new player.") # Add option to port guest stats
 
             form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the home page
 
@@ -125,12 +161,10 @@ def sendLoginFrom() -> None:
 
         form = InputForm("Sign Up", settings=settings) # Re-creates the sign-up form
         form.addSeparator(f"Username: {username}") # Display username.
-        form.registerTextInput("Password", tooltip="Leave empty to go back") # Registers a text input for the password
+        form.registerTextInput("Password") # Registers a text input for the password
         password = form.send()["Password"][InputForm.DataEntryConsts.RESPONSE] # Set password variable
-        if password == "":
-            sendLoginFrom() # If operation is aborted, go back to the Login Form.
 
-        form = OptionForm("Confirm New User", f"Please confirm the below details:\n  - Username: {username}\n  - Password: {password}", settings=settings) # Create confirmation form displaying the username and password
+        form = OptionForm("Confirm New User", f"Please confirm the below details:\n  - Username: {username}\n  - Password: {password if password else Fore.RED + 'NOT SET' + Style.RESET_ALL}", settings=settings) # Create confirmation form displaying the username and password
 
         def createPlayer():
             """ Creates a player datafile """
@@ -160,7 +194,9 @@ def sendLoginFrom() -> None:
             
         if guest_exists: 
             form = OptionForm("Create Guest Profile", "A guest profile already exists. Would you like to continue using that?", settings) # Option form to override guest profile
-            form.setBody(f"Stats:\nXP: {playerManager.getData(assets.get_guest_identifier(), PlayerData.PlayerDataFields.XP)}")
+            form.setBody(f"""Stats:
+  XP: {playerManager.getData(assets.get_guest_identifier(), PlayerData.PlayerDataFields.XP)}
+  Games Played: {playerManager.getGamesPlayed(assets.get_guest_identifier())}""") # Display guest stats
             form.addOption(Fore.GREEN + "✅  Yes, continue guest account!" + Style.RESET_ALL, lambda: None) # Continues with existing profile
             form.addOption(Fore.RED + "❌  No, reset stats and create a new guest account!" + Style.RESET_ALL, createGuestProfile) # Overrides profile
             form.addOption(Fore.LIGHTBLACK_EX + "Back to Login Page", lambda: sendHomePage())
@@ -191,5 +227,5 @@ def sendLoginFrom() -> None:
     sendHomePage() # Open home page unless any process is aborted.
 
 if __name__ == "__main__":
-    assets.logged_in_player = "rishi" # Logs out player
+    assets.logged_in_player = None # Logs out player
     sendHomePage() # If file is opened from the CMD, it will open the login form first (as no player is signed in).

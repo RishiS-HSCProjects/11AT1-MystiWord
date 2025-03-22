@@ -102,10 +102,12 @@ class Game:
 
         print(assets.getTitle()) # Prints the title banner
 
-        print("Guess the word: " + f"{self.wordManager.difficulty.formatDifficulty(upperCase=True)} MODE" + (f"               {Fore.RED + self.lives * '♥️' + Style.RESET_ALL}" if assets.getLocalData().getDataField(LocalDataFields.Settings.SHOW_HEARTS) else "")) # Displays the mode
+        pb = assets.getPlayerManager().getPB(assets.logged_in_player, self.wordManager.difficulty.value) or 0 # Gets the personal best. If it does not exist, set it to 0.
+        hearts = (Fore.RED + '♥️' * min(self.lives, pb if pb != 10 else pb - 1) + Fore.YELLOW + '♥️' * max(1 if self.lives == 10 else 0, self.lives - pb) + Style.RESET_ALL) if assets.getLocalData().getDataField(LocalDataFields.Settings.SHOW_HEARTS) else None # Displays the hearts (gold for personal best, red for current lives, last heart always yellow if lives are 10)
+        print("Guess the word: " + f"{self.wordManager.difficulty.formatDifficulty(upperCase=True)} MODE" + (f"               {hearts}" if hearts else "")) # Displays the mode
 
         # [PLACEHOLDER] Theme and game needs to go here
-        print(Themes.Themes.HANGMAN.getStage((10 - self.lives) or 9)) # Placeholder for the theme
+        print(Themes.Themes.HANGMAN.getStage((10 - (self.lives if self.lives > 0 else 1)))) # Placeholder for the theme
 
         gameLines = ["_ "] * len(word) # Creates a gameLines list comprised of one underscore for each letter of the word
 
@@ -125,23 +127,33 @@ class Game:
 
         if win != None: # Handle victory/loss logic
             if win:
+                if self.lives == 10:
+                    print(Fore.LIGHTGREEN_EX + "Perfect game!" + Fore.RESET) # Perfect game message
+                elif self.lives == 1:
+                    print(Fore.LIGHTBLACK_EX + "Phew! That was close!" + Fore.RESET) # Close call message
                 print(Fore.GREEN + Style.BRIGHT + "YOU WIN!" + Fore.RESET) # Victory text
                 print()
 
                 winXP = self.xp # Assign the base xp to winXP.
                 # Add multipliers here
 
-                winXP *= self.wordManager.difficulty.getXPMultiplier()
+                winXP *= 1 + self.lives/20 # Add a 5% bonus for each life remaining
+                winXP *= self.wordManager.difficulty.getXPMultiplier() # Multiply the XP by the difficulty multiplier
+
+                newPB = self.lives > (pb or 0) # Set newPB 
+                if newPB: # If the player has a new personal best
+                    assets.getPlayerManager().setPB(assets.logged_in_player, self.wordManager.difficulty.value, self.lives) # Set new personal best
+                    print(Fore.LIGHTGREEN_EX + f"New personal best: {self.lives} lives" + Style.RESET_ALL) # Display the new personal best message
+                if newPB or self.lives == 10: # If the player has a new personal best or they have a perfect game
+                    winXP *= 1.2 # Add a 20% bonus to XP for setting a new personal best (or having a personal best of 10)
 
                 winXP = round(winXP)
                 print(Fore.LIGHTGREEN_EX + f"+ {winXP} XP" + Style.RESET_ALL) # Display the addition of XP
                 assets.getPlayerManager().addXP(assets.logged_in_player, self.xp) # Add XP to account
-
                 assets.getPlayerManager().addWin(assets.logged_in_player) # Register win
-
             else:
-                print(Fore.RED + "YOU LOSE!" + Fore.RESET)
-                print(Fore.YELLOW + f"Word: {word.upper()}" + Fore.RESET)
+                print(Fore.RED + "YOU LOSE!" + Fore.RESET) # Loss text
+                print(Fore.YELLOW + f"Word: {word.upper()}" + Fore.RESET) # Display the word
                 assets.getPlayerManager().addLoss(assets.logged_in_player) # Register loss
 
 class WordManager:

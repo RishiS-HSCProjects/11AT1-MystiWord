@@ -21,7 +21,6 @@ if not exist "lib\updater.cmd" (
 
 cd lib
 
-
 :: If updater.cmd exists, run it and show the output in the console
 call updater.cmd || (
     echo Updater failed. Check the output above for details.
@@ -30,21 +29,9 @@ call updater.cmd || (
 
 :: Print empty line and info line
 echo.
-
-@REM TODO: REMOVE CODE
-@REM echo Installing packages...
-@REM cd ..
-@REM :: Install the project in editable mode (suppress output unless there's an error)
-@REM pip install -e . >nul 2>&1 || (
-@REM     echo Installation failed. Please try again. Exiting...
-@REM     goto ERROR_TITLE
-@REM )
-
-@REM :: Print empty line and info line
-@REM echo.
 echo Installing python libraries...
 :: Install all required libraries for the project (suppress output unless there's an error)
-pip install nltk pyreadline3 >nul 2>&1 || (
+pip install nltk >nul 2>&1 || (
     echo Library installation failed. Exiting...
     goto ERROR_TITLE
 )

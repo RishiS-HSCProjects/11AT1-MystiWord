@@ -14,6 +14,8 @@ class PlayerDataFields (DataFields):
     EASY_PB = 'easy_pb'
     MEDIUM_PB = 'medium_pb'
     HARD_PB = 'hard_pb'
+    THEMES = 'themes'
+    EQUIPPED_THEME = 'equipted_theme'
     pass
 
 class PlayerDataErrors (DataManagerErrors):
@@ -37,7 +39,9 @@ class PlayerDataManager (DataManager):
             PlayerDataFields.LOSSES: 0, # Sets losses to 0 on new account creation 
             PlayerDataFields.EASY_PB: None, # Sets personal best to None on new account creation
             PlayerDataFields.MEDIUM_PB: None, # Sets personal best to None on new account creation
-            PlayerDataFields.HARD_PB: None # Sets personal best to None on new account creation
+            PlayerDataFields.HARD_PB: None, # Sets personal best to None on new account creation
+            PlayerDataFields.THEMES: [], # Sets empty themes list to be populated on new account creation
+            PlayerDataFields.EQUIPPED_THEME: None # Sets equipted theme to None on new account creation
         }
     
     def addXP(self, player: str, xp: int) -> None:
@@ -46,6 +50,14 @@ class PlayerDataManager (DataManager):
             player, # Sets identifier to player
             PlayerDataFields.XP, # Edits player data
             int(self.getData(player, PlayerDataFields.XP) + xp) # Add current player xp and inherited XP
+        )
+        
+    def addCoins(self, player: str, coins: int) -> None:
+        """ Adds coins for a player. Negative coin values subtract them. """
+        self.setData( # Replace the XP field with the final XP.
+            player, # Sets identifier to player
+            PlayerDataFields.COINS, # Edits player data
+            int(self.getData(player, PlayerDataFields.COINS) + coins) # Add current player xp and inherited XP
         )
 
     def addWin(self, player: str) -> None:
@@ -103,10 +115,6 @@ class PlayerDataManager (DataManager):
             print(Fore.RED + f"An error occured while trying to fetch data of {identifier}: {e}. Signing out..." + Style.RESET_ALL) # Send error message
             assets.pause() # Pause interface
             assets.logged_in_player = None # Logs out player
-            try:
-                self.deleteDatafile(identifier) # Attempt to delete corrupted file
-            except DataManagerErrors.PathNotExists: # If path does not exist
-                pass # Igore
 
             import Main
             Main.sendHomePage() # Open login form.

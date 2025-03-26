@@ -10,6 +10,7 @@ class LocalDataFields (DataFields):
     class Settings (Enum):
         """ Settings fields for the local data database. All formatted. """
         SHOW_HEARTS = 'Show Hearts'
+        AFTER_GAME_STATS = 'Display Stats after Game'
 
     pass
 
@@ -26,7 +27,8 @@ class LocalDataManager (DataManager):
         return {
             LocalDataFields.LAST_LOGGED_IN: None,
             LocalDataFields.SETTINGS_CONST: {
-                LocalDataFields.Settings.SHOW_HEARTS.name: True
+                LocalDataFields.Settings.SHOW_HEARTS.name: True,
+                LocalDataFields.Settings.AFTER_GAME_STATS.name: False,
             }
         }
 

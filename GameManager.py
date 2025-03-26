@@ -2,14 +2,14 @@ import sys
 import random
 from enum import Enum
 from colorama import Fore, Back, Style, init
-
-from lib.libData.DataManager import DataFields
 init() # initialies the colorma class
+import time
 
 from lib.libData.DataManager import *
 from lib.libForms.Form import *
 import GlobalAssets as assets
 from auth.LocalData import LocalDataFields
+from auth import PlayerData
 
 class Game:
     """ Creates a new game instance and holds all of the data attributed to a running game. """
@@ -39,6 +39,14 @@ class Game:
 
         self.xp = 100
 
+        self.theme = None # Initialise self.theme
+        equipped = assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.EQUIPPED_THEME) # get equipted theme
+        if equipped: # If theme equipted
+            while not self.theme: # Repeat until theme is set
+                for theme in Themes.Themes: # Find theme
+                    if equipped == theme.getName():
+                        self.theme = theme # Set theme
+
     def createWordManager(self, difficulty: 'WordManager.Difficulties' = None):
         self.wordManager = WordManager(difficulty)
         pass
@@ -56,12 +64,18 @@ class Game:
             return isLetter and notGuessed
 
         letter = None # Sets letter to none to enter the while loop
-        firstIteration = True # Checks if the while loop has ran more than once.
+        iteration = 0 # Checks if the while loop has ran more than once.
         while not letterValidation(letter): # While the inputted letter is invalid.
-            if firstIteration:
-                firstIteration = False # Sets first iteration to false after the first iteration
-            else:
+            if iteration > 0: # Not the first iteration
+
+                if iteration > 3:
+                    iteration = 1 # Reset the iteration counter
+                    self.sendGameBoard() # Resend the gameboard to clear failed attempts.
+
                 print("Error: Invalid letter.") # Notifies the player something went wrong.
+
+            iteration += 1 # Increment the iteration counter
+
             letter = input("Guess a letter: ") # Input for the letter
 
         word = self.wordManager.word # Stores the word in this easier variable 
@@ -70,6 +84,8 @@ class Game:
         
         def finishGame(win: bool = True) -> None:
             self.sendGameBoard(win) # Show winning board.
+            time.sleep(1)
+
             assets.pause() # Holder for user to observe the board.
 
             runGame() # Rerun game
@@ -106,13 +122,13 @@ class Game:
         hearts = (Fore.RED + '♥️' * min(self.lives, pb if pb != 10 else pb - 1) + Fore.YELLOW + '♥️' * max(1 if self.lives == 10 else 0, self.lives - pb) + Style.RESET_ALL) if assets.getLocalData().getDataField(LocalDataFields.Settings.SHOW_HEARTS) else None # Displays the hearts (gold for personal best, red for current lives, last heart always yellow if lives are 10)
         print("Guess the word: " + f"{self.wordManager.difficulty.formatDifficulty(upperCase=True)} MODE" + (f"               {hearts}" if hearts else "")) # Displays the mode
 
-        # [PLACEHOLDER] Theme and game needs to go here
-        print(Themes.Themes.BOXES.getStage((10 - (self.lives if self.lives > 0 else 1)))) # Placeholder for the theme
+        if self.theme: # Check if theme is valid
+            print(self.theme.getStage((10 - (self.lives if self.lives > 0 else 1)))) # Print the theme
 
         gameLines = ["_ "] * len(word) # Creates a gameLines list comprised of one underscore for each letter of the word
 
-        for i in self.foundLetterPositions:
-            gameLines[i] = word[i].upper() + " "
+        for themes in self.foundLetterPositions:
+            gameLines[themes] = word[themes].upper() + " "
 
         print()
 
@@ -135,26 +151,47 @@ class Game:
                 print()
 
                 winXP = self.xp # Assign the base xp to winXP.
-                # Add multipliers here
+                coins = self.wordManager.difficulty.getCoins() # Get the amount of coins awarded for a win
 
+                # Add multipliers here
                 winXP *= 1 + self.lives/20 # Add a 5% bonus for each life remaining
                 winXP *= self.wordManager.difficulty.getXPMultiplier() # Multiply the XP by the difficulty multiplier
 
                 newPB = self.lives > (pb or 0) # Set newPB 
-                if newPB: # If the player has a new personal best
-                    assets.getPlayerManager().setPB(assets.logged_in_player, self.wordManager.difficulty.value, self.lives) # Set new personal best
-                    print(Fore.LIGHTGREEN_EX + f"New personal best: {self.lives} lives" + Style.RESET_ALL) # Display the new personal best message
                 if newPB or self.lives == 10: # If the player has a new personal best or they have a perfect game
+                    if newPB: # If the player has a new personal best
+                        assets.getPlayerManager().setPB(assets.logged_in_player, self.wordManager.difficulty.value, self.lives) # Set new personal best
+                        print(Fore.LIGHTGREEN_EX + f"New personal best: {self.lives} lives" + Style.RESET_ALL) # Display the new personal best message\
+
                     winXP *= 1.2 # Add a 20% bonus to XP for setting a new personal best (or having a personal best of 10)
 
                 winXP = round(winXP)
                 print(Fore.LIGHTGREEN_EX + f"+ {winXP} XP" + Style.RESET_ALL) # Display the addition of XP
-                assets.getPlayerManager().addXP(assets.logged_in_player, self.xp) # Add XP to account
+                print(Fore.YELLOW + f"+ {coins} coins" + Style.RESET_ALL) # Display the addition of coins
+                assets.getPlayerManager().addXP(assets.logged_in_player, winXP) # Add XP to account
+                assets.getPlayerManager().addCoins(assets.logged_in_player, coins) # Add XP to account
                 assets.getPlayerManager().addWin(assets.logged_in_player) # Register win
             else:
                 print(Fore.RED + "YOU LOSE!" + Fore.RESET) # Loss text
                 print(Fore.YELLOW + f"Word: {word.upper()}" + Fore.RESET) # Display the word
                 assets.getPlayerManager().addLoss(assets.logged_in_player) # Register loss
+
+                
+
+            if assets.getLocalData().getDataField(LocalDataFields.Settings.AFTER_GAME_STATS):
+                playerManager = assets.getPlayerManager() # Get player manager
+                getData = lambda field: playerManager.getData(assets.logged_in_player, field) # Get player data
+                time.sleep(1) # Pause for 1 second
+                print(f"""
+New Stats:
+  {Fore.LIGHTGREEN_EX}XP: {getData(PlayerData.PlayerDataFields.XP)}{Style.RESET_ALL}
+  Games Played: {playerManager.getGamesPlayed(assets.logged_in_player)}
+  Wins: {str(getData(PlayerData.PlayerDataFields.WINS) - 1) + " + 1" if win else getData(PlayerData.PlayerDataFields.WINS)}
+  Losses: {str(getData(PlayerData.PlayerDataFields.LOSSES) - 1) + " + 1" if not win else getData(PlayerData.PlayerDataFields.LOSSES)}
+  WLR: {playerManager.getWLR(assets.logged_in_player)}
+  Points per Win Average: {round(int(getData(PlayerData.PlayerDataFields.XP)) / int(getData(PlayerData.PlayerDataFields.WINS)), 2) if int(getData(PlayerData.PlayerDataFields.WINS)) > 0 else "N/A"}
+  {self.wordManager.difficulty.value} PB: {playerManager.getPB(assets.logged_in_player, self.wordManager.difficulty.value) or "N/A"}
+            """)
 
 class WordManager:
     """ Does everything word-related. All functions relating to the individual words of the game are located here. """
@@ -300,6 +337,17 @@ class WordManager:
                 return 1.1
             elif self == WordManager.Difficulties.HARD:
                 return 1.3
+            raise ValueError("Unknown difficulty") # Raise error if the diffculty does not exist.
+            
+        def getCoins(self) -> int:
+            """ Returns the amount of coins awarded for a win. """
+            if self == WordManager.Difficulties.EASY:
+                return 5
+            elif self == WordManager.Difficulties.MEDIUM:
+                return 10
+            elif self == WordManager.Difficulties.HARD:
+                return 15
+            raise ValueError("Unknown difficulty") # Raise error if the diffculty does not exist.
 
 class Themes:
     """ Deals with everything related to themes. """
@@ -307,6 +355,7 @@ class Themes:
     class Themes (Enum):
         BOXES = 'boxes'
         BRIDGE = 'bridge'
+        PACMAN = 'pacman'
         HANGMAN = 'hangman'
 
         def getName(self) -> str:
@@ -325,6 +374,21 @@ class Themes:
             """ Returns the cost of the theme. """
             theme_data = Themes.Manager().getTheme(self) # Fetch the theme data
             return theme_data.get('cost') # Get the amount of coins required to purchase the theme
+        
+        def handlePurchase(self) -> None:
+            from auth.PlayerData import PlayerDataFields as field
+            """ Handles the selection of the theme in the shop. Purchases the item if the player can afford it or enables the item if the player already has it purchased. """
+            
+            themes = assets.getPlayerManager().getData(assets.logged_in_player, field.THEMES)
+            coins = assets.getPlayerManager().getData(assets.logged_in_player, field.COINS)
+            if self.getName() not in themes: # If item is not already purchased...
+                if (int(coins) >= self.getCost()): # Checks if player has sufficient funds
+                    assets.getPlayerManager().setData(assets.logged_in_player, field.COINS, int(coins) - self.getCost()) # removes cost
+                    themes.append(self.getName())
+                    assets.getPlayerManager().setData(assets.logged_in_player, field.THEMES, themes) # Adds purchased theme
+                else: return # If insufficient funds, exit
+            
+            assets.getPlayerManager().setData(assets.logged_in_player, field.EQUIPPED_THEME, self.getName()) # Sets the theme to the selected theme
 
     class Manager(DataManager):
         _DATABASE_NAME = 'themes'

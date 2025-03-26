@@ -52,15 +52,22 @@ Stats:
             form.addSeparator(Fore.YELLOW + f"Coins: {coins}") # Display coins
 
             for theme in Themes.Themes: # Loop through all themes
-                def handlePurchase() -> None:
-                    pass
-
                 cost = theme.getCost() # Get the cost of the theme
-                form.addOption(theme.getName(), lambda: None, f"Cost: {Fore.RED if cost > coins else Fore.GREEN}{cost} coins") # Add option for each theme
+                form.addOption(
+                    theme.getName(), # Set option name to theme name
+
+                    lambda self=None, theme=theme: theme.handlePurchase(), # Call handlePurchase() on selection
+                    Fore.LIGHTGREEN_EX + "Equipped" if (theme.getName() == assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.EQUIPPED_THEME)) # Set text to Equipped if equipped
+                    else (Fore.YELLOW + "Unequipped" # Set text to Unequipped otherwise if purchased
+                    if (theme.getName() in assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.THEMES))
+                    else f"Cost: {Fore.RED if cost > coins else Fore.GREEN}{cost} coins") # Display cost if not already purchased
+                )
 
             form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the home page
 
             form.send() # Send the form
+
+            sendShop()
             pass
         form.addOption(Fore.YELLOW + "Shop", sendShop)
 
@@ -153,20 +160,28 @@ def sendLoginFrom() -> None:
             else:
                 sendLoginFrom() # If operation is aborted, go back to the Login Form.
 
-        form = InputForm("Sign In", settings=settings) # Re-create sign-in form if username passed validation
-        form.addSeparator(f"Username: {username}") # Display username.
-        try:
-            form.registerTextInput("Password", tooltip="Leave empty to go back", validation=lambda input: "Password Incorrect" if not input == assets.getPlayerManager().getData(username, fields.PASSWORD) and input != "" else False) # Registers a text input with validation ensuring the password is correct.
-            if form.send()["Password"][InputForm.DataEntryConsts.RESPONSE] == "":
-                sendLoginFrom() # If operation is aborted, go back to the Login Form.
-        except json.decoder.JSONDecodeError:
-            print(Fore.RED + "File corrupted. Please sign up for a new account.\n" + Style.RESET_ALL) # Sends warning
-            os.system('pause')
+        password = assets.getPlayerManager().getData(username, fields.PASSWORD)
+        if password:
+            form = InputForm("Sign In", settings=settings) # Re-create sign-in form if username passed validation
+            form.addSeparator(f"Username: {username}") # Display username.
+            try:
+                form.registerTextInput(
+                    "Password", # Register password input
+                    tooltip="Leave empty to go back", # Add back tooltip
+                    validation=lambda input: # Assign verification lambda
+                        "Password Incorrect" if not input == password and input != "" # Return password incorrect if incorrect password and not empty (for back function)
+                        else False # Return False for no validation error
+                )
+                if form.send()["Password"][InputForm.DataEntryConsts.RESPONSE] == "": # Check if password exists to see if user wants to go back
+                    sendLoginFrom() # Send login form on back
+            except json.decoder.JSONDecodeError:
+                print(Fore.RED + "File corrupted. Please sign up for a new account.\n" + Style.RESET_ALL) # Sends warning
+                os.system('pause')
 
-            assets.getPlayerManager().deleteDatafile(username)
+                assets.getPlayerManager().deleteDatafile(username)
 
-            sendSignUp()
-            return
+                sendSignUp()
+                return
 
         assets.logged_in_player = username # Set the logged in player to this player. Username acts as the player identifier.
         assets.getLocalData().setDataField(LocalData.LocalDataFields.LAST_LOGGED_IN, username) # Set the last logged in player to this player.
@@ -247,5 +262,5 @@ def sendLoginFrom() -> None:
     sendHomePage() # Open home page unless any process is aborted.
 
 if __name__ == "__main__":
-    assets.logged_in_player = "GUEST" # Logs out player
+    assets.logged_in_player = None # Logs out player
     sendHomePage() # If file is opened from the CMD, it will open the login form first (as no player is signed in).

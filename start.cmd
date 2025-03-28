@@ -36,12 +36,6 @@ pip install nltk >nul 2>&1 || (
     goto ERROR_TITLE
 )
 
-:: Clear console so it stays clean
-python -c "from GlobalAssets import clear_console; clear_console()"
-
-:: Set app title
-python -c "from GlobalAssets import set_title; set_title()"
-
 :: Run the script (module)
 python -m Main || (
     echo Python script failed. Exiting...

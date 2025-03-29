@@ -4,28 +4,30 @@ from lib.libForms.Form import *
 from lib.libData.DataManager import *
 import GlobalAssets as assets
 from GameManager import runGame, WordManager, Themes
-from auth import PlayerData, LocalData
+from auth import PlayerData, LocalData, Auth
 
 def sendHomePage() -> None:
+    """ Send homepage. Sends login form if no player is logged in. """
     assets.clear_console() # Clears the console
     settings = FormSettings() # Initialises common form settings
-    settings.editSetting(FormSettings.Setting.HEADER, assets.getTitle())
-    settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True)
-    settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True)
+    settings.editSetting(FormSettings.Setting.HEADER, assets.getTitle()) # Sets header to title.
+    settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Sets form to clear after interaction
+    settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_ACTION, True) # Sets form to clear after every action (input forms)
 
     if (assets.logged_in_player): # Returns true if logged_in_player is not None (therefore, logged in)
         form = OptionForm(f"Hello, {assets.logged_in_player}", settings=settings) # Greats logged in player
         form.addOption(Fore.GREEN + "Play", runGame) # Opens game menu.
 
         def sendStatsMenu() -> None:
-            assets.clear_console()
+            """ Function to send the stats menu """
+            assets.clear_console() # Clear console
 
-            print(assets.getTitle())
+            print(assets.getTitle()) # Print title
 
             playerManager = assets.getPlayerManager() # Get player manager
             getData = lambda field: playerManager.getData(assets.logged_in_player, field) # Get player data
 
-            # print stats menu
+            # Print stats menu
             print(f"""
 Stats:
   {Fore.LIGHTGREEN_EX}XP: {getData(PlayerData.PlayerDataFields.XP)}{Style.RESET_ALL}
@@ -41,104 +43,171 @@ Stats:
 
             assets.pause(Style.DIM) # Pause console to observe stats.
 
-            sendHomePage()
-        form.addOption(Fore.LIGHTMAGENTA_EX + "Stats", sendStatsMenu)
+            sendHomePage() # Send home page after stats are observed.
+        form.addOption(Fore.LIGHTMAGENTA_EX + "Stats", sendStatsMenu) # Add stats option to form
 
     
         def sendShop() -> None:
+            """ Function to send the shop UI. """
             form = OptionForm("Shop", "Spend your coins on cool items!", settings=settings) # Create shop form
 
-            coins = assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.COINS)
-            form.addSeparator(Fore.YELLOW + f"Coins: {coins}") # Display coins
+            coins = assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.COINS) # Get number of coins the player has in their bank.
+            form.addSeparator(Fore.YELLOW + f"Coins: {coins}") # Display number of coins
 
             for theme in Themes.Themes: # Loop through all themes
                 cost = theme.getCost() # Get the cost of the theme
-                form.addOption(
+                form.addOption( # Add an option for each theme to the form for interaction.
                     theme.getName(), # Set option name to theme name
-
                     lambda self=None, theme=theme: theme.handlePurchase(), # Call handlePurchase() on selection
                     Fore.LIGHTGREEN_EX + "Equipped" if (theme.getName() == assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.EQUIPPED_THEME)) # Set text to Equipped if equipped
                     else (Fore.YELLOW + "Unequipped" # Set text to Unequipped otherwise if purchased
-                    if (theme.getName() in assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.THEMES))
-                    else f"Cost: {Fore.RED if cost > coins else Fore.GREEN}{cost} coins") # Display cost if not already purchased
+                        if (theme.getName() in assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.THEMES)) # Check if theme is purchased.
+                        else f"Cost: {Fore.RED if cost > coins else Fore.GREEN}{cost} coins") # Display cost if not already purchased
                 )
 
-            form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the home page
+            form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the homepage
 
             form.send() # Send the form
 
-            sendShop()
+            sendShop() # Sends the shop on every interaction (except back) to update the coin and theme displays.
             pass
-        form.addOption(Fore.YELLOW + "Shop", sendShop)
+        form.addOption(Fore.YELLOW + "Shop", sendShop) # Add shop option to the form
 
         def sendSettingsMenu() -> None:
-            form = OptionForm("Settings", "Enter a setting option to toggle it.", settings)
-            form.settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------⚙️-------------->")
+            """ Sends settings menu to user to edit game and profile settings. """
+            form = OptionForm("Settings", "Enter a setting option to toggle it.", settings) # Create settings form
+            form.settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------⚙️-------------->") # Set header for form
 
             local = assets.getLocalData() # Get local data
 
             def toggleSetting(setting: LocalData.LocalDataFields.Settings) -> None:
+                """ Toggle setting within data """
                 local.setDataField(setting, not local.getDataField(setting)) # Toggle the setting
                 sendSettingsMenu() # Refresh the settings menu
 
             for setting in LocalData.LocalDataFields.Settings: # Loop through all settings
                 form.addOption(Fore.LIGHTBLUE_EX + setting.value, lambda self=None, setting=setting: toggleSetting(setting), local.getDataField(setting) and Fore.GREEN + "✅" or Fore.RED + "❌") # Add option to toggle the setting
 
+            playerManager = assets.getPlayerManager()
+
+            form.addSeparator(Fore.LIGHTCYAN_EX + "\n  Account Settings:") # Add account settings heading separator
             if (assets.logged_in_player == assets.get_guest_identifier()): # If the player is a guest
                 def portStats() -> None:
+                    """ Function to display the UI for porting GUEST stats to a new player. """
                     portStatsSettings = settings # Copy instance of settings
-                    portStatsSettings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------🔁-------------->")
-                    form = InputForm("Port Stats", settings=portStatsSettings) # Create input form
+                    portStatsSettings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------🔁-------------->") # Set header for form
+                    form = InputForm("Port Stats", settings=portStatsSettings) # Create input form with the new portStatsSettings
 
-                    form.registerTextInput("Username", validation=lambda input: ("Username already exists" if assets.getPlayerManager().datafileExists(input) else False) or ("Invalid Username: Please only use letters (a-z) in your username. Do not use spaces or other special characters." if not input.isalnum() else False))
-                    username = form.send()["Username"][InputForm.DataEntryConsts.RESPONSE].lower() # Set username variable
+                    form.registerTextInput( # Register username field, including field validation
+                        "Username", # Title text input
+                        validation=lambda input: # Pass through the input as a parameter of the verification function.
+                            ("Username already exists" if playerManager.datafileExists(input) else False) or # Return error if user already exists
+                            ("Invalid Username: Please only use letters (a-z) in your username. Do not use spaces or other special characters." if not input.isalnum() else # Return error if the username is not alphanumerical
+                            False # Return false to show verification passed
+                    ))
+                    username = form.send()["Username"][InputForm.DataEntryConsts.RESPONSE].lower() # Set username variable to a lowercase version of the above response
                     
-                    form = InputForm("Port Stats", settings=portStatsSettings) # Create input form
+                    form = InputForm("Port Stats", settings=portStatsSettings) # Create a new input form with portStatsSettings
                     form.addSeparator(f"Username: {username}") # Display username.
                     form.registerTextInput("Password") # Registers a text input for the password
                     password = form.send()["Password"][InputForm.DataEntryConsts.RESPONSE] # Set password variable
 
-                    form = OptionForm("Confirm New Account", f"Please confirm the below details:\n  - Username: {username}\n  - Password: {password if password else Fore.RED + 'NOT SET' + Style.RESET_ALL}", settings=settings) # Create confirmation form displaying the username and password
-                    form.addOption(Fore.GREEN + "✅ CONFIRM" + Style.RESET_ALL, lambda: None) # Adds option to confirm the new account.
-                    form.addOption(Fore.RED + "❌ Cancel" + Style.RESET_ALL, sendSettingsMenu) # Adds option to retry sign-up.
+                    form = OptionForm("Confirm New Account", f"Please confirm the below details:\n  - Username: {username}\n  - Password: {password if password else Fore.RED + 'NOT SET' + Style.RESET_ALL}", settings=settings) # Create confirmation form displaying the username and password.
+                    form.addOption(Fore.GREEN + "✅ CONFIRM" + Style.RESET_ALL, lambda: None) # Adds option to confirm the new account. Callback does nothing.
+                    form.addOption(Fore.RED + "❌ Cancel" + Style.RESET_ALL, sendSettingsMenu) # Adds option to retry or cancel port. Callback sends the settings form.
                     form.send() # Sends form to player
 
-                    playerManager = assets.getPlayerManager()
+                    # The following is executed if the user confirmed the action.
                     playerManager.renameDatafile(assets.get_guest_identifier(), username) # Rename the guest datafile to the new username
-                    playerManager.setData(username, PlayerData.PlayerDataFields.IDENTIFIER, username) # Set the password for the new account
+                    playerManager.setData(username, PlayerData.PlayerDataFields.IDENTIFIER, username) # Set the username for the new account
                     playerManager.setData(username, PlayerData.PlayerDataFields.PASSWORD, password) # Set the password for the new account
-                    assets.logged_in_player = username # Set the logged in player to the new username
+                    assets.logged_in_player = username # Set the logged in player to the newly created player.
                     sendHomePage() # Return to the home page
 
-                form.addSeparator() # Add a separator
-                form.addOption(Fore.LIGHTCYAN_EX + "Port Guest Stats", lambda: portStats(), "Port guest stats to a new player.") # Add option to port guest stats
+                form.addOption(Fore.LIGHTCYAN_EX + "Port Guest Stats", lambda: portStats(), "Port guest stats to a new player.") # Add option to port guest stats calling the portStats function if selected.
+            else: # If a player is logged in
+                # Logic for changing username/password.
+                def changeUsername() -> None:
+                    """ Prompts the user to change their username """
+                    form = InputForm("Change Username", settings=settings) # Creates a new input form
+                    form.registerTextInput("New Username", tooltip="Leave empty to go back.", validation=lambda input: "Username already exists" if Auth.doesUserExist(input.lower()) and input != "" else False) # Register a new text input for the username
+                    new_username = form.send()["New Username"][InputForm.DataEntryConsts.RESPONSE].lower() # Store the new username
+
+                    if new_username == "":
+                        sendSettingsMenu() # If operation is aborted, go back to the Settings Form.
+
+                    form = OptionForm("Confirm Username Change", f"Are you sure you want to change your username to '{new_username}'?", settings=settings) # Create name change confirmation from
+
+                    def handleUsernameChange():
+                        """ Handle the username change """
+
+                        playerManager.renameDatafile(assets.logged_in_player, new_username) # Rename datafile of the currently logged in player to the new player
+                        playerManager.setData(new_username, PlayerData.PlayerDataFields.IDENTIFIER, new_username) # Update identifier to the new username
+                        assets.logged_in_player = new_username # Set the logged-in player to the new username
+
+                        assets.getLocalData().setDataField(LocalData.LocalDataFields.LAST_LOGGED_IN, new_username) # Update the last logged-in player to the new username
+
+                        sendHomePage() # After the change, return to the homepage
+
+                    form.addOption(Fore.GREEN + "✅  CONFIRM" + Style.RESET_ALL, handleUsernameChange) # Add confirm option. Handle name change on confirmation.
+                    form.addOption(Fore.RED + "❌  CANCEL" + Style.RESET_ALL, sendSettingsMenu) # Add cancel option. Goes back to the settings menu.
+
+                    form.send() # Send username change form to the player
+
+                def changePassword() -> None:
+                    """ Prompts the user to change their password """
+                    form = InputForm("Change Password", settings=settings) # Creates new input form for password change 
+                    form.registerTextInput("New Password", tooltip="Enter a new password. Leave empty to unset.")
+                    new_password = form.send()["New Password"][InputForm.DataEntryConsts.RESPONSE]
+
+                    if new_password == "": # If user prompts to unset password
+                        new_password = None # Set new_password to none to unset.
+
+                    form = OptionForm("Confirm Password Change", f"Are you sure you want to {'change' if new_password else 'unset'} your password {'to ' + Fore.CYAN + new_password + Fore.RESET if new_password else ''}?", settings=settings) # Create password change confirmation form.
+
+                    def handlePasswordChange():
+                        """ Handle the password change """
+                        playerManager.setData(assets.logged_in_player, PlayerData.PlayerDataFields.PASSWORD, new_password) # Set the new password
+
+                        sendHomePage() # After the change, return to the homepage
+
+                    form.addOption(Fore.GREEN + "✅ CONFIRM" + Style.RESET_ALL, handlePasswordChange) # Add confirm option. Handle password change on confirmation.
+                    form.addOption(Fore.RED + "❌ CANCEL" + Style.RESET_ALL, sendSettingsMenu) # Add cancel option. Goes back to the settings menu.
+
+                    form.send() # Show the form to confirm the password change
+
+                form.addOption(Fore.LIGHTCYAN_EX + "Change Username", changeUsername) # Option to change username
+                form.addOption(Fore.LIGHTCYAN_EX + "Change Password", changePassword) # Option to change password
+            form.addSeparator() # Add separator
 
             form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the home page
 
-            form.send()
-        form.addOption(Fore.LIGHTBLUE_EX + "Settings", sendSettingsMenu)
+            form.send() # Send form to player.
+        form.addOption(Fore.LIGHTBLUE_EX + "Settings", sendSettingsMenu) # Add option to open the settings menu of an account.
 
         def logout() -> None:
+            """ Sends a menu confirming a logout action. """
             form = OptionForm(f"Hey, {assets.logged_in_player}!", Fore.LIGHTRED_EX + "Are you sure you want to log out?", settings=settings) # Create confirmation form for the logout
             def handleLogout() -> None:
-                assets.logged_in_player = None  # Properly log out the user
+                """ Function to handle the logout (at this point, only deleting the temporary logged_in_player field.) """
+                assets.logged_in_player = None # Properly log out the user
             form.addOption(Fore.GREEN + "✅ CONFIRM" + Style.RESET_ALL, handleLogout) # Adds option to confirm the new account. 
-            form.addOption(Fore.RED + "❌ Back" + Style.RESET_ALL, lambda: None) # Adds option to retry sign-up.
-            form.send()
-            sendHomePage()
-        form.addOption(Fore.RED + "Log Out", logout)
-        form.send()
+            form.addOption(Fore.RED + "❌ Back" + Style.RESET_ALL, lambda: None) # Adds option cancel logout.
+            form.send() # Sends form
+
+            sendHomePage() # Return to the homepage (or login page if user logged out.)
+        form.addOption(Fore.RED + "Log Out", logout) # Add option to log out of an account.
+        
+        form.send() # Send homepage form to player.
     else:
-        sendLoginFrom()
+        sendLoginFrom() # Send login form to player if no player is signed in
 
 def sendLoginFrom() -> None:
-    
-    from auth import Auth
+    """ Sends a form with all login options to the player. """
     from auth.PlayerData import PlayerDataFields as fields
 
     def sendSignIn() -> None:
         """ Sends a sign in form to the user. """
-
         last_logged_in = assets.getLocalData().getDataField(LocalData.LocalDataFields.LAST_LOGGED_IN) # Get the last logged in player
 
         form = InputForm("Sign In", settings=settings) # Creates a sign-in form
@@ -150,35 +219,31 @@ def sendLoginFrom() -> None:
                 ("Invalid Username: Please only use letters (a-z) in your username. Do not use spaces or other special characters."  if not input.isalnum() and input != "" else # Invalid if username is not alphanumeric 
                 False # False means username is valid
                 )
-
             )
         )
-        username = form.send()["Username"][InputForm.DataEntryConsts.RESPONSE].lower().replace(" ", "_") # Set username variable t0 full lowercase and remove spaces
-        if username == "":
-            if last_logged_in:
-                username = last_logged_in
-            else:
-                sendLoginFrom() # If operation is aborted, go back to the Login Form.
+        username = form.send()["Username"][InputForm.DataEntryConsts.RESPONSE].lower() # Set username variable to a lowercase version of the above response
+        if username == "": # Checks if usernme is empty
+            if last_logged_in: # Checks if last_logged_in field is available
+                username = last_logged_in # Autofills username to last logged in if no username provided.
+            else: # If no last_logged_in player...
+                sendLoginFrom() # Operation is aborted, go back to the Login Form.
 
-        password = assets.getPlayerManager().getData(username, fields.PASSWORD)
-        if password:
+        password = assets.getPlayerManager().getData(username, fields.PASSWORD) # Get the expected password of the player
+        if password: # Check if the player has a password set
             form = InputForm("Sign In", settings=settings) # Re-create sign-in form if username passed validation
             form.addSeparator(f"Username: {username}") # Display username.
             try:
-                form.registerTextInput(
-                    "Password", # Register password input
+                form.registerTextInput("Password", # Register password input
                     tooltip="Leave empty to go back", # Add back tooltip
                     validation=lambda input: # Assign verification lambda
                         "Password Incorrect" if not input == password and input != "" # Return password incorrect if incorrect password and not empty (for back function)
-                        else False # Return False for no validation error
+                        else False # Return False for no validation error (password correct or empty)
                 )
-                if form.send()["Password"][InputForm.DataEntryConsts.RESPONSE] == "": # Check if password exists to see if user wants to go back
+                if form.send()["Password"][InputForm.DataEntryConsts.RESPONSE] == "": # Check if password is empty to see if user wants to go back
                     sendLoginFrom() # Send login form on back
             except json.decoder.JSONDecodeError:
                 print(Fore.RED + "File corrupted. Please sign up for a new account.\n" + Style.RESET_ALL) # Sends warning
                 os.system('pause')
-
-                assets.getPlayerManager().deleteDatafile(username)
 
                 sendSignUp()
                 return
@@ -212,8 +277,6 @@ def sendLoginFrom() -> None:
 
         form.send() # Sends form to player
 
-        pass
-
     def registerGuest() -> None:
         """ Opens terminal for a guest """
 
@@ -222,28 +285,27 @@ def sendLoginFrom() -> None:
         guest_exists = playerManager.datafileExists(assets.get_guest_identifier()) # Checks if guest datafile already exists
 
         def createGuestProfile() -> None:
-            if guest_exists: 
+            """ Create a new guest profile """
+            if guest_exists: # If a guest already exists
                 playerManager.deleteDatafile(assets.get_guest_identifier()) # Deletes existing datafile
             
-            playerManager.createDatafile(assets.get_guest_identifier()) # Creates a new stock datafile
+            playerManager.createDatafile(assets.get_guest_identifier()) # Creates a stock guest datafile with clean settings and values.
             
-        if guest_exists: 
+        if guest_exists: # If a guest already exists
             form = OptionForm("Create Guest Profile", "A guest profile already exists. Would you like to continue using that?", settings) # Option form to override guest profile
             form.setBody(f"""Stats:
   XP: {playerManager.getData(assets.get_guest_identifier(), PlayerData.PlayerDataFields.XP)}
-  Games Played: {playerManager.getGamesPlayed(assets.get_guest_identifier())}""") # Display guest stats
+  Games Played: {playerManager.getGamesPlayed(assets.get_guest_identifier())}""") # Display some guest stats to users can observe whether or not they want to override it.
             form.addOption(Fore.GREEN + "✅  Yes, continue guest account!" + Style.RESET_ALL, lambda: None) # Continues with existing profile
-            form.addOption(Fore.RED + "❌  No, reset stats and create a new guest account!" + Style.RESET_ALL, createGuestProfile) # Overrides profile
-            form.addOption(Fore.LIGHTBLACK_EX + "Back to Login Page", lambda: sendHomePage())
+            form.addOption(Fore.RED + "❌  No, reset stats and create a new guest account!" + Style.RESET_ALL, createGuestProfile) # Overrides profile and creates a new guest account
+            form.addOption(Fore.LIGHTBLACK_EX + "Back to Login Page", sendLoginFrom) # Return back to login page
 
             form.send() # Sends form
         else:
             createGuestProfile() # Creates guest profile
     
-        assets.logged_in_player = assets.get_guest_identifier()
-        sendHomePage()
-
-        pass
+        assets.logged_in_player = assets.get_guest_identifier() # Sets logged in player to guest
+        sendHomePage() # Send the homepage.
 
     assets.clear_console() # Clears the console
     settings = FormSettings() # Initialises common form settings
@@ -263,4 +325,4 @@ def sendLoginFrom() -> None:
 
 if __name__ == "__main__":
     assets.logged_in_player = None # Logs out player
-    sendHomePage() # If file is opened from the CMD, it will open the login form first (as no player is signed in).
+    sendHomePage() # Send homepage (usually will be the login page)

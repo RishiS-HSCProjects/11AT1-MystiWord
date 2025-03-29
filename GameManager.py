@@ -12,21 +12,21 @@ from auth.LocalData import LocalDataFields
 from auth import PlayerData
 
 class Game:
-    """ Creates a new game instance and holds all of the data attributed to a running game. """
+    """ Holes all data and functions attributed to a running game. """
 
     def __init__(self) -> None:
+        """ Initialise game """
         self.form = OptionForm("Choose Difficulty") # Create a choose difficulty form
 
-        self.form.addOption(WordManager.Difficulties.EASY.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.EASY))
-        self.form.addOption(WordManager.Difficulties.MEDIUM.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.MEDIUM))
-        self.form.addOption(WordManager.Difficulties.HARD.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.HARD))
+        self.form.addOption(WordManager.Difficulties.EASY.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.EASY)) # Create option for difficulty
+        self.form.addOption(WordManager.Difficulties.MEDIUM.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.MEDIUM)) # Create option for difficulty
+        self.form.addOption(WordManager.Difficulties.HARD.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.HARD)) # Create option for difficulty
         self.form.addOption(Back.RED + Fore.WHITE + "Random", lambda _: self.createWordManager()) # WordData will handle cases where the difficulty is not set.
         
         from Main import sendHomePage # Import home page
-        self.form.addOption(Fore.LIGHTBLACK_EX + "Back", lambda: sendHomePage())
+        self.form.addOption(Fore.LIGHTBLACK_EX + "Back", lambda: sendHomePage()) # Create back option
 
-        self.form.settings.editSetting(
-            FormSettings.Setting.HEADER, assets.getTitle()) # Creates a pretty header using the ANSI SHADOW ASCII art
+        self.form.settings.editSetting(FormSettings.Setting.HEADER, assets.getTitle()) # Creates a pretty header using the ANSI SHADOW ASCII art
         self.form.settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Clears the console after an option has been selected.
 
         self.form.send() # Sends the form to the user
@@ -37,7 +37,7 @@ class Game:
 
         self.lives = 10 # Starts life count at ten.
 
-        self.xp = 100
+        self.xp = 100 # starts XP at 100
 
         self.theme = None # Initialise self.theme
         equipped = assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.EQUIPPED_THEME) # get equipted theme
@@ -48,20 +48,24 @@ class Game:
                         self.theme = theme # Set theme
 
     def createWordManager(self, difficulty: 'WordManager.Difficulties' = None):
+        """ Sets the wordmanager based on difficulty. """
         self.wordManager = WordManager(difficulty)
         pass
 
     def playGame(self):
-        self.sendGameBoard()
+        """ Runs gameplay processes """
+
+        self.sendGameBoard() # Displays gameboard.
 
         def letterValidation(letter: str) -> bool:
+            """ Function to check if a letter is a valid guess (not guessed before, a valid letter). """
             if not isinstance(letter, str):
                 return False # Failsafe + makes the while loop start.
 
             isLetter = len(letter) == 1 and letter.lower().isalpha() # Returns true if the input is a valid letter
             notGuessed = letter.upper() not in self.incorrectLetters and letter.upper() not in self.correctLetters # Returns true if the letter has not previously been guessed.
 
-            return isLetter and notGuessed
+            return isLetter and notGuessed # Returns if letter is a valid letter and has not previously been guessed.
 
         letter = None # Sets letter to none to enter the while loop
         iteration = 0 # Checks if the while loop has ran more than once.
@@ -82,9 +86,10 @@ class Game:
 
         foundLetters = [i for i in range(len(word)) if word.startswith(letter, i)] # Finds positions where the letters in self.word is equal to the letter.
         
-        def finishGame(win: bool = True) -> None:
+        def finishGame(win) -> None:
+            """ Actions ran on game end. """
             self.sendGameBoard(win) # Show winning board.
-            time.sleep(1)
+            time.sleep(1) # Sleep to not let the user exit too fast. 
 
             assets.pause() # Holder for user to observe the board.
 
@@ -99,18 +104,16 @@ class Game:
                 self.lives -= 1 # Reduce one life.
                 self.xp -= 10 # Reduce XP by 10
             if self.lives == 0:
-                finishGame(False) # Stop game.
+                finishGame(False) # Stop game (loss).
 
 
         if len(self.foundLetterPositions) == len(word): # Win validation
-            finishGame()
+            finishGame(True) # Stop game (win)
         else:
             self.playGame() # Rerun this script to play the next tern.
 
     def sendGameBoard(self, win: bool = None):
-        """
-        Sends the top part of the gameboard.
-        """
+        """ Sends the gameboard. """
 
         assets.clear_console() # Clears the console
 
@@ -130,25 +133,25 @@ class Game:
         for themes in self.foundLetterPositions:
             gameLines[themes] = word[themes].upper() + " "
 
-        print()
+        print() # Whitespace
 
         print("".join(gameLines)) # Converts array to a string.
 
-        print()
+        print() # Whitespace
 
         if len(self.incorrectLetters) > 0: # Only show incorrect letters if there are any.
             print(Fore.RED + "Incorrect letters: " + ", ".join(self.incorrectLetters) + Fore.RESET) # Format incorrect letters.
 
-        print()
+        print() # Whitespace
 
         if win != None: # Handle victory/loss logic
-            if win:
+            if win: # Handle victory
                 if self.lives == 10:
                     print(Fore.LIGHTGREEN_EX + "Perfect game!" + Fore.RESET) # Perfect game message
                 elif self.lives == 1:
                     print(Fore.LIGHTBLACK_EX + "Phew! That was close!" + Fore.RESET) # Close call message
                 print(Fore.GREEN + Style.BRIGHT + "YOU WIN!" + Fore.RESET) # Victory text
-                print()
+                print() # Whitespace
 
                 winXP = self.xp # Assign the base xp to winXP.
                 coins = self.wordManager.difficulty.getCoins() # Get the amount of coins awarded for a win
@@ -178,7 +181,7 @@ class Game:
 
                 
 
-            if assets.getLocalData().getDataField(LocalDataFields.Settings.AFTER_GAME_STATS):
+            if assets.getLocalData().getDataField(LocalDataFields.Settings.AFTER_GAME_STATS): # Show player stats if enabled
                 playerManager = assets.getPlayerManager() # Get player manager
                 getData = lambda field: playerManager.getData(assets.logged_in_player, field) # Get player data
                 time.sleep(1) # Pause for 1 second
@@ -191,22 +194,21 @@ New Stats:
   WLR: {playerManager.getWLR(assets.logged_in_player)}
   Points per Win Average: {round(int(getData(PlayerData.PlayerDataFields.XP)) / int(getData(PlayerData.PlayerDataFields.WINS)), 2) if int(getData(PlayerData.PlayerDataFields.WINS)) > 0 else "N/A"}
   {self.wordManager.difficulty.value} PB: {playerManager.getPB(assets.logged_in_player, self.wordManager.difficulty.value) or "N/A"}
-            """)
+            """) # Print stats
 
 class WordManager:
     """ Does everything word-related. All functions relating to the individual words of the game are located here. """
     
     def __init__(self, difficulty: 'WordManager.Difficulties' = None) -> None:
+        """ Initialise word manager. """
         if not isinstance(difficulty, WordManager.Difficulties):
             # If difficulty was set to None (for randomisation) or an invalid type, randomise difficulty to avoid an error.
             difficulty = random.choice(list(WordManager.Difficulties))  # Randomly select a difficulty
         
-        self.difficulty = difficulty
+        self.difficulty = difficulty # Sets difficulty
 
         class LoadingBarStatus (Enum):
-            """
-            Statuses to tell the systems which messages to display.
-            """
+            """ Statuses to tell the systems which messages to display for the loading screen. """
             DOWNLOADING_WORDS = 0
             FILTERING_WORDS = 1
             RANDOMISING_WORDS = 2
@@ -216,7 +218,7 @@ class WordManager:
         class CorpusType (Enum):
             """ Defines corpus names for easy access """
             WORDS = 'words' # Type storing a large repository of words in English
-            COMMON = 'brown' # Type storing repository of common words in English
+            COMMON = 'brown' # Type storing (smaller) repository of common words in English
             pass
 
         def sendLoadingBar(status: "LoadingBarStatus") -> None:
@@ -248,7 +250,7 @@ class WordManager:
             if status.value >= LoadingBarStatus.CHOOSING_WORD.value:
                 print("\nChoosing word...")
     
-        sendLoadingBar(LoadingBarStatus.DOWNLOADING_WORDS)
+        sendLoadingBar(LoadingBarStatus.DOWNLOADING_WORDS) # Send loading screen
 
         import nltk # Import the Natural Language Toolkit
 
@@ -272,31 +274,32 @@ class WordManager:
         # Download the necessary corpora if not already downloaded. Do not output logs here.
         nltk.download(corpusType.value, quiet=True)
 
-        sendLoadingBar(LoadingBarStatus.FILTERING_WORDS)
+        sendLoadingBar(LoadingBarStatus.FILTERING_WORDS) # Send loading screen
+
         # Select the correct corpus based on corpusType
+        # Creates array with all applicable words by cycling through all words in a repository. 
         if corpusType == CorpusType.COMMON:
             word_list = [word.lower() for word in brown.words() if min_len <= len(word) <= max_len]
         elif corpusType == CorpusType.WORDS:
             word_list = [word.lower() for word in words.words() if min_len <= len(word) <= max_len]
 
-        sendLoadingBar(LoadingBarStatus.RANDOMISING_WORDS)
+        sendLoadingBar(LoadingBarStatus.RANDOMISING_WORDS) # Send loading screen
         random.shuffle(word_list) # Shuffle the word list
         while True: # Loop to keep finding a word till it is valid
             self.word = random.choice(word_list) # Choose a random word
             if self.word.isalpha(): # Ensure the word only has letters (Brown words had this issue where numbers would be outputted instead of words.)
                 break
 
-        sendLoadingBar(LoadingBarStatus.CHOOSING_WORD)
+        sendLoadingBar(LoadingBarStatus.CHOOSING_WORD) # Send loading screen
 
     class Difficulties (Enum):
+        """ Stores difficulty information and functions. """
         EASY = "Easy"
         MEDIUM = "Medium"
         HARD = "Hard"
 
         def getColour(self) -> str:
-            """
-            Return the appropriate color for each difficulty.
-            """
+            """ Return the appropriate color for each difficulty. """
             if self == WordManager.Difficulties.EASY:
                 return Fore.GREEN
             elif self == WordManager.Difficulties.MEDIUM:
@@ -312,7 +315,7 @@ class WordManager:
             Parameters:
                 resetColour (str): Optionally, color to reset to after formatting.
                 upperCase (bool):
-                    - None: No case changes
+                    - None (default): No case changes (sentence case)
                     - False: Force lower case
                     - True: Force upper case 
 
@@ -323,11 +326,11 @@ class WordManager:
             name = self.value
             if upperCase:
                 name = name.upper()
-            elif upperCase != None:
+            elif upperCase != None: # While True != None, True case is handled above.
                 name = name.lower()
 
-            # Apply color formatting
-            return self.getColour() + name + (resetColour if isinstance(resetColour, str) else Fore.RESET)\
+            # Apply color formatting and return formatted name
+            return self.getColour() + name + (resetColour if isinstance(resetColour, str) else Fore.RESET)
             
         def getXPMultiplier(self) -> float:
             """ Returns the XP multipler that will be applied. """
@@ -340,7 +343,7 @@ class WordManager:
             raise ValueError("Unknown difficulty") # Raise error if the diffculty does not exist.
             
         def getCoins(self) -> int:
-            """ Returns the amount of coins awarded for a win. """
+            """ Returns the constant amount of coins awarded for a win. """
             if self == WordManager.Difficulties.EASY:
                 return 5
             elif self == WordManager.Difficulties.MEDIUM:
@@ -376,47 +379,70 @@ class Themes:
             return theme_data.get('cost') # Get the amount of coins required to purchase the theme
         
         def handlePurchase(self) -> None:
+            """
+                Handles the selection of the theme in the shop. 
+                
+                Cases:
+                    - Player can not afford it: Does nothing.
+                    - Player can afford it: Purchases theme and enables theme for display.
+                    - Player has item in inventory: Enables theme for display.
+            """
             from auth.PlayerData import PlayerDataFields as field
-            """ Handles the selection of the theme in the shop. Purchases the item if the player can afford it or enables the item if the player already has it purchased. """
             
-            themes = assets.getPlayerManager().getData(assets.logged_in_player, field.THEMES)
-            coins = assets.getPlayerManager().getData(assets.logged_in_player, field.COINS)
+            themes = assets.getPlayerManager().getData(assets.logged_in_player, field.THEMES) # Array of purchased themes
+            coins = assets.getPlayerManager().getData(assets.logged_in_player, field.COINS) # Number of coins in the player's bank.
             if self.getName() not in themes: # If item is not already purchased...
                 if (int(coins) >= self.getCost()): # Checks if player has sufficient funds
-                    assets.getPlayerManager().setData(assets.logged_in_player, field.COINS, int(coins) - self.getCost()) # removes cost
-                    themes.append(self.getName())
-                    assets.getPlayerManager().setData(assets.logged_in_player, field.THEMES, themes) # Adds purchased theme
-                else: return # If insufficient funds, exit
+                    assets.getPlayerManager().setData(assets.logged_in_player, field.COINS, int(coins) - self.getCost()) # removes cost from bank
+                    themes.append(self.getName()) # Append themes array with the newly purchased theme.
+                    assets.getPlayerManager().setData(assets.logged_in_player, field.THEMES, themes) # Stores new themes array into player stats.
+                else: return # If insufficient funds, exit (do nothing)
             
             assets.getPlayerManager().setData(assets.logged_in_player, field.EQUIPPED_THEME, self.getName()) # Sets the theme to the selected theme
 
     class Manager(DataManager):
-        _DATABASE_NAME = 'themes'
+        """ Manages themes data """
+        _DATAFILE_NAME = 'themes' # Only one file in this database. Sets the name of the database to 'themes'.
         
         def __init__(self):
-            super().__init__(os.path.dirname(__file__), DataManager.DatabaseType.DICT)
+            """ Initialise database. """
+            super().__init__(os.path.dirname(__file__), DataManager.DatabaseType.DICT) # Define database properties.
         
         def createDatafile(self):
+            """
+                Raises exception when developer tries to create a new datafile. 
+
+                Seeing as this database only needs one datafile to manage themes,
+                this is set to prevent accidental/unnecessary actions.
+            """
             raise DataManagerErrors.ActionNotAllowed()
         
         def deleteDatafile(self):
+            """
+                Raises exception when developer tries to delete a datafile. 
+
+                If the datafile does not exist, themes will stop working.
+                Although we have implemented a try-except block to avoid
+                this being a fatal error, it would be better if the developer
+                could not accidentally delete the file within the code.
+            """
             raise DataManagerErrors.ActionNotAllowed()
 
         def getTheme(self, theme: "Themes.Themes") -> dict:
             """ Retrieve theme data by theme. """
-            return self.getData(self._DATABASE_NAME, theme)
+            return self.getData(key=theme) # Returns a dictionary with themes data.
 
-        def getData(self, identifier: str, key: "Themes.Themes" = None) -> dict:
+        def getData(self, identifier: str = None, key: "Themes.Themes" = None) -> dict:
             """ Retrieves data from the database for the given identifier and optional key. """
-            data = super().getData(self._DATABASE_NAME)  # Fetch data from parent class
+            data = super().getData(self._DATAFILE_NAME)  # Fetch data from parent class. Force search in the (only) datafile.
 
             # If key is provided, return the specific theme data, otherwise return all data
             if key is not None:
-                return data.get(key.value, {})
-            return data
-
+                return data.get(key.value, {}) # Return data for a specific key
+            return data # Return all themes data. 
 
 def runGame():
+    """ Create new game instance to run the game. """
     assets.clear_console() # Clears the console
     game = Game() # Create new game class
     game.playGame() # Run game

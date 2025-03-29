@@ -5,10 +5,11 @@ from lib.libData.DataManager import DataFields
 import GlobalAssets as assets
 
 class LocalDataFields (DataFields):
+    """ Enum class with datafields storing local data """
     LAST_LOGGED_IN = 'last_logged_in'
     SETTINGS_CONST = 'settings'
     class Settings (Enum):
-        """ Settings fields for the local data database. All formatted. """
+        """ Settings fields for the local data database. All formatted for display. """
         SHOW_HEARTS = 'Show Hearts'
         AFTER_GAME_STATS = 'Display Stats after Game'
 
@@ -18,12 +19,14 @@ class LocalDataManager (DataManager):
     _DATABASE_NAME = 'local_data'
 
     def __init__(self):
-        super().__init__(os.path.join(os.path.dirname(__file__)), DataManager.DatabaseType.DICT)
+        """ Initalise database manager. """
+        super().__init__(os.path.join(os.path.dirname(__file__)), DataManager.DatabaseType.DICT) # Set directory path and database type.
 
-        if not self.datafileExists(self._DATABASE_NAME):
-            self.createDatafile(self._DATABASE_NAME)
+        if not self.datafileExists(self._DATABASE_NAME): # Create datafile if not already exists.
+            self.createDatafile(self._DATABASE_NAME) # Create datafile. Will replace empty file with default values.
 
     def getDefaultValues(self) -> dict:
+        """ Get the default values for local data (to replace if field does not exist.) """
         return {
             LocalDataFields.LAST_LOGGED_IN: None,
             LocalDataFields.SETTINGS_CONST: {
@@ -49,23 +52,20 @@ class LocalDataManager (DataManager):
 
     def setDataField(self, field: DataFields, newVal) -> None:
         """ Sets a value to a field in a datafile. Assumes the newVal is a valid value for the field. """
-        self.setData(self._DATABASE_NAME, field, newVal)
+        self.setData(self._DATABASE_NAME, field, newVal) # Call set data with the database name as the identifier.
 
     def setData(self, identifier: str, field: DataFields, newVal) -> None:
         # If the field is an instance of LocalDataFields.Settings, set the data under settings
         if isinstance(field, LocalDataFields.Settings):
-            # Get the data from the file
-            data = self.getData(identifier)
+            data = self.getData(identifier) # Get the data from the file
 
-            # Ensure the "settings" key exists in the data
-            if LocalDataFields.SETTINGS_CONST not in data:
+            if LocalDataFields.SETTINGS_CONST not in data: # Ensure the "settings" key exists in the data
                 data[LocalDataFields.SETTINGS_CONST] = {}  # Initialize settings if not present
 
             # Set the new value under "settings" for the specific field
             data[LocalDataFields.SETTINGS_CONST][field.name] = newVal  # Use field.name for clarity
 
-            # Get the formatted file path
-            path = self.getFormattedFilename(identifier)
+            path = self.getFormattedFilename(identifier)# Get the formatted file path
 
             # Write the updated data back to the file
             try:

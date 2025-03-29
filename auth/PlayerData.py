@@ -5,6 +5,7 @@ from lib.libData.DataManager import DataFields
 import GlobalAssets as assets
 
 class PlayerDataFields (DataFields):
+    """ Enum class with datafields storing player data. """
     USERNAME = 'username'
     PASSWORD = 'password'
     XP = 'xp'
@@ -25,13 +26,16 @@ class PlayerDataErrors (DataManagerErrors):
         """
         
         def __init__(self, identifier: str = None):
-            super().__init__("Tried manipulating an unknown player" + (f": {str(identifier)}" if identifier else ""))
+            """ Initialises exception """
+            super().__init__("Tried manipulating an unknown player" + (f": {str(identifier)}" if identifier else "")) # Create exception with error
 
 class PlayerDataManager (DataManager):
     def __init__(self):
+        """ Initialises database """
         super().__init__(os.path.join(os.path.dirname(__file__), "players"), self.DatabaseType.DICT) # Define database properties
 
     def getDefaultValues(self) -> dict:
+        """ Get the default values for local data (to replace if field does not exist.) """
         return {
             PlayerDataFields.XP: 0, # Sets XP to 0 on new account creation
             PlayerDataFields.COINS: 0, # Sets coins to 0 on new account creation

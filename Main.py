@@ -75,6 +75,9 @@ Stats:
 
         def sendSettingsMenu() -> None:
             """ Sends settings menu to user to edit game and profile settings. """
+
+            from copy import deepcopy
+
             form = OptionForm("Settings", "Enter a setting option to toggle it.", settings) # Create settings form
             form.settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------⚙️-------------->") # Set header for form
 
@@ -85,16 +88,19 @@ Stats:
                 local.setDataField(setting, not local.getDataField(setting)) # Toggle the setting
                 sendSettingsMenu() # Refresh the settings menu
 
+            form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, Fore.LIGHTBLUE_EX + "Settings:")
+
+            form.addSeparator(Fore.YELLOW + f"\nGame Settings{Fore.RESET}:")
             for setting in LocalData.LocalDataFields.Settings: # Loop through all settings
-                form.addOption(Fore.LIGHTBLUE_EX + setting.value, lambda self=None, setting=setting: toggleSetting(setting), local.getDataField(setting) and Fore.GREEN + "✅" or Fore.RED + "❌") # Add option to toggle the setting
+                form.addOption(Fore.YELLOW + setting.value, lambda self=None, setting=setting: toggleSetting(setting), local.getDataField(setting) and Fore.GREEN + "✅" or Fore.RED + "❌") # Add option to toggle the setting
 
             playerManager = assets.getPlayerManager()
 
-            form.addSeparator(Fore.LIGHTCYAN_EX + "\n  Account Settings:") # Add account settings heading separator
+            form.addSeparator(Fore.LIGHTCYAN_EX + f"\nAccount Settings{Fore.RESET}:") # Add account settings heading separator
             if (assets.logged_in_player == assets.get_guest_identifier()): # If the player is a guest
                 def portStats() -> None:
                     """ Function to display the UI for porting GUEST stats to a new player. """
-                    portStatsSettings = settings # Copy instance of settings
+                    portStatsSettings = deepcopy(settings) # Copy instance of settings
                     portStatsSettings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------🔁-------------->") # Set header for form
                     form = InputForm("Port Stats", settings=portStatsSettings) # Create input form with the new portStatsSettings
 
@@ -130,7 +136,7 @@ Stats:
                 def changeUsername() -> None:
                     """ Prompts the user to change their username """
                     form = InputForm("Change Username", settings=settings) # Creates a new input form
-                    form.registerTextInput("New Username", tooltip="Leave empty to go back.", validation=lambda input: "Username already exists" if Auth.doesUserExist(input.lower()) and input != "" else False) # Register a new text input for the username
+                    form.registerTextInput("New Username", tooltip="Leave empty to go back", validation=lambda input: "Username already exists" if Auth.doesUserExist(input.lower()) and input != "" else False) # Register a new text input for the username
                     new_username = form.send()["New Username"][InputForm.DataEntryConsts.RESPONSE].lower() # Store the new username
 
                     if new_username == "":
@@ -157,13 +163,13 @@ Stats:
                 def changePassword() -> None:
                     """ Prompts the user to change their password """
                     form = InputForm("Change Password", settings=settings) # Creates new input form for password change 
-                    form.registerTextInput("New Password", tooltip="Enter a new password. Leave empty to unset.")
+                    form.registerTextInput("New Password", tooltip="Enter a new password. Leave empty to unset")
                     new_password = form.send()["New Password"][InputForm.DataEntryConsts.RESPONSE]
 
                     if new_password == "": # If user prompts to unset password
                         new_password = None # Set new_password to none to unset.
 
-                    form = OptionForm("Confirm Password Change", f"Are you sure you want to {'change' if new_password else 'unset'} your password {'to ' + Fore.CYAN + new_password + Fore.RESET if new_password else ''}?", settings=settings) # Create password change confirmation form.
+                    form = OptionForm("Confirm Password Change", f"Are you sure you want to {'change' if new_password else 'unset'} your password{' to ' + Fore.CYAN + new_password + Fore.RESET if new_password else ''}?", settings=settings) # Create password change confirmation form.
 
                     def handlePasswordChange():
                         """ Handle the password change """
@@ -176,8 +182,63 @@ Stats:
 
                     form.send() # Show the form to confirm the password change
 
+                def deleteAccount() -> None:
+                    """ Confirms with the user to delete their account. """
+
+                    deleteAccountSettings = deepcopy(settings) # Copies settings
+                    deleteAccountSettings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n{Fore.RED}<--------------🛑-------------->")
+                    deleteAccountSettings.editSetting(FormSettings.Setting.SEPARATOR, f"{Fore.RED}<--------------🛑-------------->")
+                    deleteAccountSettings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_ACTION, False)
+
+                    form = OptionForm(Fore.RED + "Confirm Account Deletion", f"Are you sure you want to delete your account, {Fore.CYAN + assets.logged_in_player + Fore.RESET}?\n\nThis is an irreversible action.\n", settings=deleteAccountSettings)
+
+                    def handleAccountDeletion():
+                        """ Ask for the user's username and password to confirm. """
+                        form = InputForm("Confirm Account Details", settings=deleteAccountSettings) # Create form
+
+                        def handleEmptyField(username: bool) -> None:
+                            """ Exits out of account deletion menu if a field is empty. 
+
+                                Pass through username=true for username and username=false for password
+                            """
+                            
+                            if form.inputs['Username' if username else 'Password'][InputForm.DataEntryConsts.RESPONSE] == "": # If field is empty
+                                assets.clear_console() # Clear console
+                                sendSettingsMenu() # Go back to settings menu
+
+                        form.registerTextInput(
+                            name="Username",
+                            tooltip="Enter your username to confirm. Leave blank to cancel",
+                            validation=lambda input: "Incorrect username" if input != assets.logged_in_player and input != "" else False,
+                            callback = lambda: handleEmptyField(True)
+                        )
+
+                        password = playerManager.getData(assets.logged_in_player, PlayerData.PlayerDataFields.PASSWORD)
+                        if password:
+                            form.registerTextInput(
+                                name="Password",
+                                tooltip="Enter your password to confirm. Leave blank to cancel",
+                                validation=lambda input: "Incorrect password" if input != password and input != "" else False,
+                                callback = lambda: handleEmptyField(False)
+                            )
+
+                        form.send()
+
+                        # Proceed with deletion if username and password are correct
+                        playerManager.deleteDatafile(assets.logged_in_player) # Deletes the player's data file
+                        assets.logged_in_player = None  # Logout the player
+                        assets.getLocalData().setDataField(LocalData.LocalDataFields.LAST_LOGGED_IN, None)
+
+                        sendHomePage()  # Redirect to the homepage (i.e. login page)
+
+                    form.addOption(Fore.GREEN + "✅ CONFIRM DELETE" + Style.RESET_ALL, handleAccountDeletion)  # Confirm delete
+                    form.addOption(Fore.RED + "❌ CANCEL" + Style.RESET_ALL, sendSettingsMenu)  # Cancel action and return to settings
+
+                    form.send()  # Show confirmation form
+
                 form.addOption(Fore.LIGHTCYAN_EX + "Change Username", changeUsername) # Option to change username
                 form.addOption(Fore.LIGHTCYAN_EX + "Change Password", changePassword) # Option to change password
+                form.addOption(Fore.LIGHTRED_EX + "Delete Account", deleteAccount) # Option to change password
             form.addSeparator() # Add separator
 
             form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the home page
@@ -243,7 +304,7 @@ def sendLoginFrom() -> None:
                     sendLoginFrom() # Send login form on back
             except json.decoder.JSONDecodeError:
                 print(Fore.RED + "File corrupted. Please sign up for a new account.\n" + Style.RESET_ALL) # Sends warning
-                os.system('pause')
+                assets.pause()
 
                 sendSignUp()
                 return

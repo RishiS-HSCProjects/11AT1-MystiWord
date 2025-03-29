@@ -55,6 +55,8 @@ class Game:
     def playGame(self):
         """ Runs gameplay processes """
 
+        assets.set_title(f"Playing {self.wordManager.difficulty.name} MODE")
+
         self.sendGameBoard() # Displays gameboard.
 
         def letterValidation(letter: str) -> bool:
@@ -444,5 +446,6 @@ class Themes:
 def runGame():
     """ Create new game instance to run the game. """
     assets.clear_console() # Clears the console
+    assets.set_title("Play")
     game = Game() # Create new game class
     game.playGame() # Run game

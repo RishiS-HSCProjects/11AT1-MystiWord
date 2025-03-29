@@ -1,4 +1,4 @@
-from colorama import Fore, Style
+from colorama import Fore, Back, Style
 
 from lib.libForms.Form import *
 from lib.libData.DataManager import *
@@ -8,7 +8,12 @@ from auth import PlayerData, LocalData, Auth
 
 def sendHomePage() -> None:
     """ Send homepage. Sends login form if no player is logged in. """
+
+    playerManager = assets.getPlayerManager() # Get player manager
+
     assets.clear_console() # Clears the console
+    assets.set_title("In the Menus") # Sets app title
+
     settings = FormSettings() # Initialises common form settings
     settings.editSetting(FormSettings.Setting.HEADER, assets.getTitle()) # Sets header to title.
     settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Sets form to clear after interaction
@@ -24,7 +29,6 @@ def sendHomePage() -> None:
 
             print(assets.getTitle()) # Print title
 
-            playerManager = assets.getPlayerManager() # Get player manager
             getData = lambda field: playerManager.getData(assets.logged_in_player, field) # Get player data
 
             # Print stats menu
@@ -46,12 +50,65 @@ Stats:
             sendHomePage() # Send home page after stats are observed.
         form.addOption(Fore.LIGHTMAGENTA_EX + "Stats", sendStatsMenu) # Add stats option to form
 
+        def sendLeaderboards() -> None:
+            """ Function to send and calculate leaderboards. """
+            from auth.PlayerData import PlayerDataFields as field
+
+            players = [ # Array storing all player identifier
+                os.path.splitext(player)[0] # Remove the .json extension (saves with identifier)
+                for player in os.listdir(playerManager.datapath) # Iterate through every player file
+                if player != f"{assets.get_guest_identifier}.json" # Exclude guest player
+                and os.path.isfile(os.path.join(playerManager.datapath, player)) # Include if player file exists
+            ]
+
+            class LeaderboardData(Enum):
+                """ Enum class storing all leaderboard types and data. """
+                XP = field.XP
+                WINS = field.WINS
+                WLR = "Win/Loss Ratio"
+                XP_PER_WIN = "XP/Win Ratio"
+
+                def orderPlayers(self) -> list:
+                    """ Function that returns the order of players based on the leaderboard type. """
+
+                    # Set ordered_players
+                    if self.value in [LeaderboardData.XP.value, LeaderboardData.WINS.value]: data = lambda player: playerManager.getData(player, self.value)
+                    elif self.value == LeaderboardData.WLR.value: data = lambda player: round(playerManager.getData(player, field.WINS) / (playerManager.getData(player, field.LOSSES) if playerManager.getData(player, field.LOSSES) > 0 else 1), 2)
+                    elif self.value == LeaderboardData.XP_PER_WIN.value: data = lambda player: round(playerManager.getData(player, field.XP) / (playerManager.getData(player, field.WINS) if playerManager.getData(player, field.WINS) > 0 else 1), 2)
+                    else: raise ValueError("Unknown leaderboard") # Raise error if function called statically
+                    
+                    ordered_players = [
+                        (player, data(player)) # Store a set of tuples as (player, value)
+                        for player in players if data(player) is not None # Iterrate through every player and check if they have a value for the datafield
+                    ]
+
+                    return sorted(ordered_players, key=lambda x: x[1], reverse=True) # Sort players based on the second item in the tuple (the value)
+
+            form = OptionForm(title="Leaderboards", settings=settings)
+            form.settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------👑-------------->") # Set header for form
+
+            guest_warning = None
+            if assets.logged_in_player == assets.get_guest_identifier(): 
+                guest_warning = f"\n{Fore.YELLOW}Guest accounts are not shown on leaderboards. {Fore.CYAN}Port your stats in the Settings menu {Fore.YELLOW}to join the leaderboards!"
+                form.setBody(guest_warning)
+
+            while True: # Keeps refreshing the form
+                for leaderboard in list(LeaderboardData):
+                    form.addOption(
+                        f"{leaderboard.value.upper()} Leaderboard",
+                        lambda self=form, leaderboard=leaderboard: self.setBody(f"{guest_warning if guest_warning else ''}\n{leaderboard.value.upper()} Leaderboard:\n" + "\n".join([f"{index + 1}. {Fore.CYAN}{f'{Style.BRIGHT + Back.LIGHTBLACK_EX}YOU' if player[0] == assets.logged_in_player else player[0]}: {player[1]}{Style.RESET_ALL}" for index, player in enumerate(leaderboard.orderPlayers()[:20])]))
+                    )
+
+                form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the homepage
+
+                form.send()
+        form.addOption(Fore.LIGHTYELLOW_EX + "Leaderboards", sendLeaderboards)
     
         def sendShop() -> None:
             """ Function to send the shop UI. """
             form = OptionForm("Shop", "Spend your coins on cool items!", settings=settings) # Create shop form
 
-            coins = assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.COINS) # Get number of coins the player has in their bank.
+            coins = playerManager.getData(assets.logged_in_player, PlayerData.PlayerDataFields.COINS) # Get number of coins the player has in their bank.
             form.addSeparator(Fore.YELLOW + f"Coins: {coins}") # Display number of coins
 
             for theme in Themes.Themes: # Loop through all themes
@@ -59,9 +116,9 @@ Stats:
                 form.addOption( # Add an option for each theme to the form for interaction.
                     theme.getName(), # Set option name to theme name
                     lambda self=None, theme=theme: theme.handlePurchase(), # Call handlePurchase() on selection
-                    Fore.LIGHTGREEN_EX + "Equipped" if (theme.getName() == assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.EQUIPPED_THEME)) # Set text to Equipped if equipped
+                    Fore.LIGHTGREEN_EX + "Equipped" if (theme.getName() == playerManager.getData(assets.logged_in_player, PlayerData.PlayerDataFields.EQUIPPED_THEME)) # Set text to Equipped if equipped
                     else (Fore.YELLOW + "Unequipped" # Set text to Unequipped otherwise if purchased
-                        if (theme.getName() in assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.THEMES)) # Check if theme is purchased.
+                        if (theme.getName() in playerManager.getData(assets.logged_in_player, PlayerData.PlayerDataFields.THEMES)) # Check if theme is purchased.
                         else f"Cost: {Fore.RED if cost > coins else Fore.GREEN}{cost} coins") # Display cost if not already purchased
                 )
 
@@ -88,13 +145,11 @@ Stats:
                 local.setDataField(setting, not local.getDataField(setting)) # Toggle the setting
                 sendSettingsMenu() # Refresh the settings menu
 
-            form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, Fore.LIGHTBLUE_EX + "Settings:")
+            form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, Fore.LIGHTBLUE_EX + "Settings")
 
             form.addSeparator(Fore.YELLOW + f"\nGame Settings{Fore.RESET}:")
             for setting in LocalData.LocalDataFields.Settings: # Loop through all settings
                 form.addOption(Fore.YELLOW + setting.value, lambda self=None, setting=setting: toggleSetting(setting), local.getDataField(setting) and Fore.GREEN + "✅" or Fore.RED + "❌") # Add option to toggle the setting
-
-            playerManager = assets.getPlayerManager()
 
             form.addSeparator(Fore.LIGHTCYAN_EX + f"\nAccount Settings{Fore.RESET}:") # Add account settings heading separator
             if (assets.logged_in_player == assets.get_guest_identifier()): # If the player is a guest
@@ -267,6 +322,9 @@ def sendLoginFrom() -> None:
     """ Sends a form with all login options to the player. """
     from auth.PlayerData import PlayerDataFields as fields
 
+    assets.set_title("Login") # Sets app title
+    playerManager = assets.getPlayerManager() # Get player manager
+
     def sendSignIn() -> None:
         """ Sends a sign in form to the user. """
         last_logged_in = assets.getLocalData().getDataField(LocalData.LocalDataFields.LAST_LOGGED_IN) # Get the last logged in player
@@ -289,7 +347,7 @@ def sendLoginFrom() -> None:
             else: # If no last_logged_in player...
                 sendLoginFrom() # Operation is aborted, go back to the Login Form.
 
-        password = assets.getPlayerManager().getData(username, fields.PASSWORD) # Get the expected password of the player
+        password = playerManager.getData(username, fields.PASSWORD) # Get the expected password of the player
         if password: # Check if the player has a password set
             form = InputForm("Sign In", settings=settings) # Re-create sign-in form if username passed validation
             form.addSeparator(f"Username: {username}") # Display username.
@@ -329,7 +387,6 @@ def sendLoginFrom() -> None:
 
         def createPlayer():
             """ Creates a player datafile """
-            playerManager = assets.getPlayerManager() # Get player manager 
             playerManager.createDatafile(username) # Create the datafile. This will automatically add the default values.
             playerManager.setData(username, fields.PASSWORD, password) # Set the password to the datafile.
         form.addOption(Fore.GREEN + "✅ CONFIRM" + Style.RESET_ALL, createPlayer) # Adds option to confirm the new account. 
@@ -340,8 +397,6 @@ def sendLoginFrom() -> None:
 
     def registerGuest() -> None:
         """ Opens terminal for a guest """
-
-        playerManager = assets.getPlayerManager() # Assigns player manager
 
         guest_exists = playerManager.datafileExists(assets.get_guest_identifier()) # Checks if guest datafile already exists
 
@@ -385,5 +440,5 @@ def sendLoginFrom() -> None:
     sendHomePage() # Open home page unless any process is aborted.
 
 if __name__ == "__main__":
-    assets.logged_in_player = None # Logs out player
+    assets.logged_in_player = "rishi" # Logs out player
     sendHomePage() # Send homepage (usually will be the login page)

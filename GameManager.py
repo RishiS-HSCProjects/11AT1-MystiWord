@@ -12,24 +12,26 @@ from auth.LocalData import LocalDataFields
 from auth import PlayerData
 
 class Game:
-    """ Holes all data and functions attributed to a running game. """
+    """ Holds all data and functions attributed to a running game. """
 
     def __init__(self) -> None:
         """ Initialise game """
-        self.form = OptionForm("Choose Difficulty") # Create a choose difficulty form
+        difficulty_form = OptionForm("Play Guess the Word!", "Guess letters to spell out a word!\n\nYou get more XP the less incorrect guesses you make. XP can get you ranked high on the leaderboards!\n\nYou lose a life for every incorrect letter you guess. You have 10 lives, so choose wisely!.") # Create a choose difficulty form
+        difficulty_form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Choose Difficulty") # Sets options text to Choose Difficulty
 
-        self.form.addOption(WordManager.Difficulties.EASY.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.EASY)) # Create option for difficulty
-        self.form.addOption(WordManager.Difficulties.MEDIUM.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.MEDIUM)) # Create option for difficulty
-        self.form.addOption(WordManager.Difficulties.HARD.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.HARD)) # Create option for difficulty
-        self.form.addOption(Back.RED + Fore.WHITE + "Random", lambda _: self.createWordManager()) # WordData will handle cases where the difficulty is not set.
+
+        difficulty_form.addOption(WordManager.Difficulties.EASY.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.EASY)) # Create option for difficulty
+        difficulty_form.addOption(WordManager.Difficulties.MEDIUM.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.MEDIUM)) # Create option for difficulty
+        difficulty_form.addOption(WordManager.Difficulties.HARD.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.HARD)) # Create option for difficulty
+        difficulty_form.addOption(Back.RED + Fore.WHITE + "Random", lambda _: self.createWordManager()) # WordData will handle cases where the difficulty is not set.
         
         from Main import sendHomePage # Import home page
-        self.form.addOption(Fore.LIGHTBLACK_EX + "Back", lambda: sendHomePage()) # Create back option
+        difficulty_form.addOption(Fore.LIGHTBLACK_EX + "Back", lambda: sendHomePage()) # Create back option
 
-        self.form.settings.editSetting(FormSettings.Setting.HEADER, assets.getTitle()) # Creates a pretty header using the ANSI SHADOW ASCII art
-        self.form.settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Clears the console after an option has been selected.
+        difficulty_form.settings.editSetting(FormSettings.Setting.HEADER, assets.getTitle()) # Creates a pretty header using the ANSI SHADOW ASCII art
+        difficulty_form.settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Clears the console after an option has been selected.
 
-        self.form.send() # Sends the form to the user
+        difficulty_form.send() # Sends the form to the user
 
         self.foundLetterPositions = [] # Initialises the array with all of the correct letters. This will be the index to wher the correct letter is.
         self.correctLetters = [] # Initialises the array with all of the correct letters. This is an array of strings.
@@ -37,7 +39,7 @@ class Game:
 
         self.lives = 10 # Starts life count at ten.
 
-        self.xp = 100 # starts XP at 100
+        self.xp = self.lives * 10 # starts XP at ten time the amount of lives (100). 
 
         self.theme = None # Initialise self.theme
         equipped = assets.getPlayerManager().getData(assets.logged_in_player, PlayerData.PlayerDataFields.EQUIPPED_THEME) # get equipted theme
@@ -162,7 +164,7 @@ class Game:
                 winXP *= 1 + self.lives/20 # Add a 5% bonus for each life remaining
                 winXP *= self.wordManager.difficulty.getXPMultiplier() # Multiply the XP by the difficulty multiplier
 
-                newPB = self.lives > (pb or 0) # Set newPB 
+                newPB = self.lives > (pb or 0) # Set if player has a new personal best
                 if newPB or self.lives == 10: # If the player has a new personal best or they have a perfect game
                     if newPB: # If the player has a new personal best
                         assets.getPlayerManager().setPB(assets.logged_in_player, self.wordManager.difficulty.value, self.lives) # Set new personal best

@@ -40,7 +40,9 @@ class LocalDataManager (DataManager):
         return self.getData(self._DATABASE_NAME, field)
 
     def getData(self, identifier: str, key: DataFields = None):
-        """ Check if the DataField is an instance of LocalDataFields.Settings """
+        """ Check if the DataField is an instance of LocalDataFields.Settings
+            Strictly private function. Use `LocalDataManager.getDataField()`.
+        """
         data = super().getData(identifier)  # Get the data from the parent class
 
         # Only handle LocalDataFields.Settings specifically
@@ -55,6 +57,9 @@ class LocalDataManager (DataManager):
         self.setData(self._DATABASE_NAME, field, newVal) # Call set data with the database name as the identifier.
 
     def setData(self, identifier: str, field: DataFields, newVal) -> None:
+        """ Set a data field within local_data.
+            Strictly private function. Use `LocalDataManager.setDataField()`.
+        """
         # If the field is an instance of LocalDataFields.Settings, set the data under settings
         if isinstance(field, LocalDataFields.Settings):
             data = self.getData(identifier) # Get the data from the file

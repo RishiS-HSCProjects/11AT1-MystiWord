@@ -4,7 +4,7 @@ from lib.libForms.Form import *
 from lib.libData.DataManager import *
 import GlobalAssets as assets
 from GameManager import runGame, WordManager, Themes
-from auth import PlayerData, LocalData, Auth
+from auth import PlayerData, LocalData
 
 def sendHomePage() -> None:
     """ Send homepage. Sends login form if no player is logged in. """
@@ -18,6 +18,7 @@ def sendHomePage() -> None:
     settings.editSetting(FormSettings.Setting.HEADER, assets.getTitle()) # Sets header to title.
     settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Sets form to clear after interaction
     settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_ACTION, True) # Sets form to clear after every action (input forms)
+    settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Game Options") # Sets options text to Game Options
 
     if (assets.logged_in_player): # Returns true if logged_in_player is not None (therefore, logged in)
         form = OptionForm(f"Hello, {assets.logged_in_player}", settings=settings) # Greats logged in player
@@ -67,6 +68,9 @@ Stats:
                 WINS = field.WINS
                 WLR = "Win/Loss Ratio"
                 XP_PER_WIN = "XP/Win Ratio"
+                EASY_HS = "Easy Difficulty High Scores"
+                MEDIUM_HS = "Medium Difficulty High Score"
+                HARD_HS = "Hard Difficulty High Score"
 
                 def orderPlayers(self) -> list:
                     """ Function that returns the order of players based on the leaderboard type. """
@@ -75,6 +79,9 @@ Stats:
                     if self.value in [LeaderboardData.XP.value, LeaderboardData.WINS.value]: data = lambda player: playerManager.getData(player, self.value)
                     elif self.value == LeaderboardData.WLR.value: data = lambda player: round(playerManager.getData(player, field.WINS) / (playerManager.getData(player, field.LOSSES) if playerManager.getData(player, field.LOSSES) > 0 else 1), 2)
                     elif self.value == LeaderboardData.XP_PER_WIN.value: data = lambda player: round(playerManager.getData(player, field.XP) / (playerManager.getData(player, field.WINS) if playerManager.getData(player, field.WINS) > 0 else 1), 2)
+                    elif self.value == LeaderboardData.EASY_HS.value: data = lambda player: playerManager.getData(player, field.EASY_PB)
+                    elif self.value == LeaderboardData.MEDIUM_HS.value: data = lambda player: playerManager.getData(player, field.MEDIUM_PB)
+                    elif self.value == LeaderboardData.HARD_HS.value: data = lambda player: playerManager.getData(player, field.HARD_PB)
                     else: raise ValueError("Unknown leaderboard") # Raise error if function called statically
                     
                     ordered_players = [
@@ -83,10 +90,27 @@ Stats:
                     ]
 
                     return sorted(ordered_players, key=lambda x: x[1], reverse=True) # Sort players based on the second item in the tuple (the value)
+                
+                def getFormattedName(self) -> str:
+                    """ Returns the formatted name of a leaderboard. """
+                    # Colour data
+                    if self.value == LeaderboardData.XP.value: colour = Fore.LIGHTGREEN_EX
+                    elif self.value == LeaderboardData.WINS.value: colour = Style.BRIGHT + Fore.MAGENTA
+                    elif self.value == LeaderboardData.WLR.value: colour = Fore.LIGHTRED_EX
+                    elif self.value == LeaderboardData.XP_PER_WIN.value: colour = Fore.LIGHTBLUE_EX
+                    elif self.value in [LeaderboardData.EASY_HS.value, LeaderboardData.MEDIUM_HS.value, LeaderboardData.HARD_HS.value]: colour = Fore.LIGHTCYAN_EX
+                    else: colour = Fore.RESET
 
-            form = OptionForm(title="Leaderboards", settings=settings)
+                    # Name data
+                    if self.value == LeaderboardData.XP.value: name = "XP"
+                    elif self.value == LeaderboardData.WINS.value: name = "Wins"
+                    else: name = self.value
+
+                    return colour + name + " Leaderboard"
+
+            form = OptionForm(title=f"{Style.BRIGHT + Fore.YELLOW}Leaderboards", settings=settings)
             form.settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------👑-------------->") # Set header for form
-
+            form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Open Leaderboard") # Set header for form
             guest_warning = None
             if assets.logged_in_player == assets.get_guest_identifier(): 
                 guest_warning = f"\n{Fore.YELLOW}Guest accounts are not shown on leaderboards. {Fore.CYAN}Port your stats in the Settings menu {Fore.YELLOW}to join the leaderboards!"
@@ -95,8 +119,8 @@ Stats:
             while True: # Keeps refreshing the form
                 for leaderboard in list(LeaderboardData):
                     form.addOption(
-                        f"{leaderboard.value.upper()} Leaderboard",
-                        lambda self=form, leaderboard=leaderboard: self.setBody(f"{guest_warning if guest_warning else ''}\n{leaderboard.value.upper()} Leaderboard:\n" + "\n".join([f"{index + 1}. {Fore.CYAN}{f'{Style.BRIGHT + Back.LIGHTBLACK_EX}YOU' if player[0] == assets.logged_in_player else player[0]}: {player[1]}{Style.RESET_ALL}" for index, player in enumerate(leaderboard.orderPlayers()[:20])]))
+                        leaderboard.getFormattedName(),
+                        lambda self=form, leaderboard=leaderboard: self.setBody(f"{guest_warning if guest_warning else ''}\n{leaderboard.getFormattedName()} Leaderboard{Style.RESET_ALL}:\n" + "\n".join([f"{index + 1}. {Fore.CYAN}{f'{Style.BRIGHT + Back.LIGHTBLACK_EX}YOU' if player[0] == assets.logged_in_player else player[0]}: {player[1]}{Style.RESET_ALL}" for index, player in enumerate(leaderboard.orderPlayers()[:20])]))
                     )
 
                 form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the homepage
@@ -191,7 +215,7 @@ Stats:
                 def changeUsername() -> None:
                     """ Prompts the user to change their username """
                     form = InputForm("Change Username", settings=settings) # Creates a new input form
-                    form.registerTextInput("New Username", tooltip="Leave empty to go back", validation=lambda input: "Username already exists" if Auth.doesUserExist(input.lower()) and input != "" else False) # Register a new text input for the username
+                    form.registerTextInput("New Username", tooltip="Leave empty to go back", validation=lambda input: "Username already exists" if assets.doesUserExist(input.lower()) and input != "" else False) # Register a new text input for the username
                     new_username = form.send()["New Username"][InputForm.DataEntryConsts.RESPONSE].lower() # Store the new username
 
                     if new_username == "":
@@ -334,7 +358,7 @@ def sendLoginFrom() -> None:
             "Username", # Input name
             tooltip=f"Leave empty to autofil to '{Fore.CYAN + last_logged_in + Fore.RESET}'" if last_logged_in else "Leave empty to go back", # Tooltip for exit/autofill
             validation=lambda input: ( # Validation code
-                "Username does not exist" if not Auth.doesUserExist(input.lower()) and input != "" else # Check that username does not exist (or is empty)
+                "Username does not exist" if not assets.doesUserExist(input.lower()) and input != "" else # Check that username does not exist (or is empty)
                 ("Invalid Username: Please only use letters (a-z) in your username. Do not use spaces or other special characters."  if not input.isalnum() and input != "" else # Invalid if username is not alphanumeric 
                 False # False means username is valid
                 )
@@ -373,7 +397,7 @@ def sendLoginFrom() -> None:
     def sendSignUp() -> None:
         """ Sends a sign in form to the user. """
         form = InputForm("Sign Up", settings=settings) # Creates a sign-up forms
-        form.registerTextInput("Username", tooltip="Leave empty to go back", validation=lambda input: "Username already exists" if Auth.doesUserExist(input.lower()) else False) # Registers a text input with validation ensuring the user does not already exist.
+        form.registerTextInput("Username", tooltip="Leave empty to go back", validation=lambda input: "Username already exists" if assets.doesUserExist(input.lower()) else False) # Registers a text input with validation ensuring the user does not already exist.
         username = form.send()["Username"][InputForm.DataEntryConsts.RESPONSE].lower() # Set username variable
         if username == "":
             sendLoginFrom() # If operation is aborted, go back to the Login Form.
@@ -440,5 +464,5 @@ def sendLoginFrom() -> None:
     sendHomePage() # Open home page unless any process is aborted.
 
 if __name__ == "__main__":
-    assets.logged_in_player = "rishi" # Logs out player
+    assets.logged_in_player = None # Logs out player
     sendHomePage() # Send homepage (usually will be the login page)

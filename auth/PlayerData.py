@@ -21,9 +21,7 @@ class PlayerDataFields (DataFields):
 
 class PlayerDataErrors (DataManagerErrors):
     class UnknownPlayer(Exception):
-        """
-            This exception is raised when the game tries accessing an unknown player.
-        """
+        """ This exception is raised when the game tries accessing an unknown player. """
         
         def __init__(self, identifier: str = None):
             """ Initialises exception """

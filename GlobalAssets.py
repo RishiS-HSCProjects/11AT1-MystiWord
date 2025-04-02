@@ -29,6 +29,10 @@ def getLocalData() -> LocalData.LocalDataManager:
     """ Returns new instance of LocalDataManager. """
     return LocalData.LocalDataManager()
 
+def doesUserExist(username: str) -> bool:
+    """ Returns if a user exists. """
+    return getPlayerManager().datafileExists(username)
+
 # Player Data
 logged_in_player = None # Initialises the temporary storage of the logged in player. 
 
@@ -38,9 +42,8 @@ def logged_in_player(): # Get logged_in_player
 
 @logged_in_player.setter
 def logged_in_player(value: str) -> None: # Set logged_in_player
-    from auth import Auth # Import Auth here to prevent circular import error
-    if not Auth.doesUserExist(value): # If statement is true if the user does not exist. 
-        raise PlayerData.PlayerDataErrors.UnknownPlayer(value) # Throw error if player does not happen.
+    if not doesUserExist(value): # If statement is true if the user does not exist. 
+        raise PlayerData.PlayerDataErrors.UnknownPlayer(value) # Throw error if player does not exist.
     logged_in_player = value # Sets logged in player to value.
 
 def get_guest_identifier() -> str:

@@ -19,6 +19,8 @@ def sendHomePage() -> None:
     settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Sets form to clear after interaction
     settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_ACTION, True) # Sets form to clear after every action (input forms)
     settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Game Options") # Sets options text to Game Options
+    settings.editSetting(FormSettings.Setting.CLEAN_FAILED_RESPONSES, 3) # Clears form and failed responses after three incorrect attempts
+
 
     if (assets.logged_in_player): # Returns true if logged_in_player is not None (therefore, logged in)
         form = OptionForm(f"Hello, {assets.logged_in_player}", settings=settings) # Greats logged in player
@@ -75,7 +77,7 @@ Stats:
                 def orderPlayers(self) -> list:
                     """ Function that returns the order of players based on the leaderboard type. """
 
-                    # Set ordered_players
+                    # Set data lambda: data(player)
                     if self.value in [LeaderboardData.XP.value, LeaderboardData.WINS.value]: data = lambda player: playerManager.getData(player, self.value)
                     elif self.value == LeaderboardData.WLR.value: data = lambda player: round(playerManager.getData(player, field.WINS) / (playerManager.getData(player, field.LOSSES) if playerManager.getData(player, field.LOSSES) > 0 else 1), 2)
                     elif self.value == LeaderboardData.XP_PER_WIN.value: data = lambda player: round(playerManager.getData(player, field.XP) / (playerManager.getData(player, field.WINS) if playerManager.getData(player, field.WINS) > 0 else 1), 2)
@@ -85,8 +87,10 @@ Stats:
                     else: raise ValueError("Unknown leaderboard") # Raise error if function called statically
                     
                     ordered_players = [
-                        (player, data(player)) # Store a set of tuples as (player, value)
-                        for player in players if data(player) is not None # Iterrate through every player and check if they have a value for the datafield
+                        (player, value) # Store a set of tuples as (player, value)
+                        for player in players if # Iterates through the players and saves them as a tuple if the following conditions are met:
+                            player != assets.get_guest_identifier() # Player is not a guest (guest accounts are not allowed to be in leaderboards.)
+                            and isinstance((value := data(player)), (int, float))  # Assign the result of data(player) to 'value' using a Walrus Operator and check if it is a number
                     ]
 
                     return sorted(ordered_players, key=lambda x: x[1], reverse=True) # Sort players based on the second item in the tuple (the value)
@@ -108,7 +112,7 @@ Stats:
 
                     return colour + name + " Leaderboard"
 
-            form = OptionForm(title=f"{Style.BRIGHT + Fore.YELLOW}Leaderboards", settings=settings)
+            form = OptionForm(title=f"{Fore.YELLOW}Leaderboards", settings=settings)
             form.settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------👑-------------->") # Set header for form
             form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Open Leaderboard") # Set header for form
             guest_warning = None
@@ -120,17 +124,30 @@ Stats:
                 for leaderboard in list(LeaderboardData):
                     form.addOption(
                         leaderboard.getFormattedName(),
-                        lambda self=form, leaderboard=leaderboard: self.setBody(f"{guest_warning if guest_warning else ''}\n{leaderboard.getFormattedName()} Leaderboard{Style.RESET_ALL}:\n" + "\n".join([f"{index + 1}. {Fore.CYAN}{f'{Style.BRIGHT + Back.LIGHTBLACK_EX}YOU' if player[0] == assets.logged_in_player else player[0]}: {player[1]}{Style.RESET_ALL}" for index, player in enumerate(leaderboard.orderPlayers()[:20])]))
-                    )
+                        lambda self=form, leaderboard=leaderboard: self.setBody( # Change the body to the selected leaderboard
+                            f"{guest_warning if guest_warning else ''}\n" # Displays guest warning if player is guest
+                            f"{leaderboard.getFormattedName()} Leaderboard{Style.RESET_ALL}:\n" # Displays form title
+                            + "\n".join([ # List every leaderboard entry in a new line.
+                                # For each player in the top 10, show their rank, name (or YOU if it's the current player), and the value
+                                f"{index + 1}. " # Display rank
+                                f"{Fore.CYAN}{f'{Style.BRIGHT + Back.LIGHTBLACK_EX}YOU' if player[0] == assets.logged_in_player else player[0]}: "  # Highlight 'YOU' if current player (otherwise just insert the player name)
+                                f"{player[1]}{Style.RESET_ALL}"  # Display score with styling reset
+                                for index, player in enumerate(leaderboard.orderPlayers()[:10])  # Repeat above for the top ten players.
+                            ])
+                        )
+                    )                   
+
 
                 form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the homepage
 
                 form.send()
-        form.addOption(Fore.LIGHTYELLOW_EX + "Leaderboards", sendLeaderboards)
+        form.addOption(Fore.YELLOW + "Leaderboards", sendLeaderboards)
     
         def sendShop() -> None:
             """ Function to send the shop UI. """
             form = OptionForm("Shop", "Spend your coins on cool items!", settings=settings) # Create shop form
+
+            form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Select an Item") # Sets options text
 
             coins = playerManager.getData(assets.logged_in_player, PlayerData.PlayerDataFields.COINS) # Get number of coins the player has in their bank.
             form.addSeparator(Fore.YELLOW + f"Coins: {coins}") # Display number of coins
@@ -152,14 +169,14 @@ Stats:
 
             sendShop() # Sends the shop on every interaction (except back) to update the coin and theme displays.
             pass
-        form.addOption(Fore.YELLOW + "Shop", sendShop) # Add shop option to the form
+        form.addOption(Fore.LIGHTYELLOW_EX + "Shop", sendShop) # Add shop option to the form
 
         def sendSettingsMenu() -> None:
             """ Sends settings menu to user to edit game and profile settings. """
 
             from copy import deepcopy
 
-            form = OptionForm("Settings", "Enter a setting option to toggle it.", settings) # Create settings form
+            form = OptionForm(Fore.LIGHTBLUE_EX + "Settings", "Enter a setting option to toggle it.", settings) # Create settings form
             form.settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------⚙️-------------->") # Set header for form
 
             local = assets.getLocalData() # Get local data
@@ -169,7 +186,7 @@ Stats:
                 local.setDataField(setting, not local.getDataField(setting)) # Toggle the setting
                 sendSettingsMenu() # Refresh the settings menu
 
-            form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, Fore.LIGHTBLUE_EX + "Settings")
+            form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, None) # Removes the options text from the form.
 
             form.addSeparator(Fore.YELLOW + f"\nGame Settings{Fore.RESET}:")
             for setting in LocalData.LocalDataFields.Settings: # Loop through all settings
@@ -199,7 +216,7 @@ Stats:
 
                     form = OptionForm("Confirm New Account", f"Please confirm the below details:\n  - Username: {username}\n  - Password: {password if password else Fore.RED + 'NOT SET' + Style.RESET_ALL}", settings=settings) # Create confirmation form displaying the username and password.
                     form.addOption(Fore.GREEN + "✅ CONFIRM" + Style.RESET_ALL, lambda: None) # Adds option to confirm the new account. Callback does nothing.
-                    form.addOption(Fore.RED + "❌ Cancel" + Style.RESET_ALL, sendSettingsMenu) # Adds option to retry or cancel port. Callback sends the settings form.
+                    form.addOption(Fore.RED + "❌ Cancel" + Style.RESET_ALL, sendSettingsMenu, isDefault=True) # Adds option to retry or cancel port. Callback sends the settings form.
                     form.send() # Sends form to player
 
                     # The following is executed if the user confirmed the action.
@@ -235,7 +252,7 @@ Stats:
                         sendHomePage() # After the change, return to the homepage
 
                     form.addOption(Fore.GREEN + "✅  CONFIRM" + Style.RESET_ALL, handleUsernameChange) # Add confirm option. Handle name change on confirmation.
-                    form.addOption(Fore.RED + "❌  CANCEL" + Style.RESET_ALL, sendSettingsMenu) # Add cancel option. Goes back to the settings menu.
+                    form.addOption(Fore.RED + "❌  CANCEL" + Style.RESET_ALL, sendSettingsMenu, isDefault=True) # Add cancel option. Goes back to the settings menu.
 
                     form.send() # Send username change form to the player
 
@@ -248,7 +265,7 @@ Stats:
                     if new_password == "": # If user prompts to unset password
                         new_password = None # Set new_password to none to unset.
 
-                    form = OptionForm("Confirm Password Change", f"Are you sure you want to {'change' if new_password else 'unset'} your password{' to ' + Fore.CYAN + new_password + Fore.RESET if new_password else ''}?", settings=settings) # Create password change confirmation form.
+                    form = OptionForm("Confirm Password Change", f"Are you sure you want to {Fore.GREEN + 'change' if new_password else Fore.RED + 'unset'}{Fore.RESET} your password{' to ' + Fore.CYAN + new_password + Fore.RESET if new_password else ''}?", settings=settings) # Create password change confirmation form.
 
                     def handlePasswordChange():
                         """ Handle the password change """
@@ -257,7 +274,7 @@ Stats:
                         sendHomePage() # After the change, return to the homepage
 
                     form.addOption(Fore.GREEN + "✅ CONFIRM" + Style.RESET_ALL, handlePasswordChange) # Add confirm option. Handle password change on confirmation.
-                    form.addOption(Fore.RED + "❌ CANCEL" + Style.RESET_ALL, sendSettingsMenu) # Add cancel option. Goes back to the settings menu.
+                    form.addOption(Fore.RED + "❌ CANCEL" + Style.RESET_ALL, sendSettingsMenu, isDefault=True) # Add cancel option. Goes back to the settings menu.
 
                     form.send() # Show the form to confirm the password change
 
@@ -311,7 +328,7 @@ Stats:
                         sendHomePage()  # Redirect to the homepage (i.e. login page)
 
                     form.addOption(Fore.GREEN + "✅ CONFIRM DELETE" + Style.RESET_ALL, handleAccountDeletion)  # Confirm delete
-                    form.addOption(Fore.RED + "❌ CANCEL" + Style.RESET_ALL, sendSettingsMenu)  # Cancel action and return to settings
+                    form.addOption(Fore.RED + "❌ CANCEL" + Style.RESET_ALL, sendSettingsMenu, isDefault=True)  # Cancel action and return to settings
 
                     form.send()  # Show confirmation form
 
@@ -320,7 +337,7 @@ Stats:
                 form.addOption(Fore.LIGHTRED_EX + "Delete Account", deleteAccount) # Option to change password
             form.addSeparator() # Add separator
 
-            form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the home page
+            form.addOption(Fore.RED + "🔴 Back", sendHomePage, isDefault=True) # Adds option to go back to the home page
 
             form.send() # Send form to player.
         form.addOption(Fore.LIGHTBLUE_EX + "Settings", sendSettingsMenu) # Add option to open the settings menu of an account.

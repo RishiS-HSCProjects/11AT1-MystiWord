@@ -26,10 +26,15 @@ class Game:
         difficulty_form.addOption(Back.RED + Fore.WHITE + "Random", lambda _: self.createWordManager()) # WordData will handle cases where the difficulty is not set.
         
         from Main import sendHomePage # Import home page
-        difficulty_form.addOption(Fore.LIGHTBLACK_EX + "Back", lambda: sendHomePage()) # Create back option
+        difficulty_form.addOption(
+            name=Fore.LIGHTBLACK_EX + "Back", # Create back option
+            callback=lambda: sendHomePage(), # Send to homepage on click
+            isDefault=True # If no option selected, go back
+        )
 
         difficulty_form.settings.editSetting(FormSettings.Setting.HEADER, assets.getTitle()) # Creates a pretty header using the ANSI SHADOW ASCII art
         difficulty_form.settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Clears the console after an option has been selected.
+        difficulty_form.settings.editSetting(FormSettings.Setting.CLEAN_FAILED_RESPONSES, 3) # Clears form and failed responses after three incorrect attempts
 
         difficulty_form.send() # Sends the form to the user
 
@@ -80,7 +85,7 @@ class Game:
                     iteration = 1 # Reset the iteration counter
                     self.sendGameBoard() # Resend the gameboard to clear failed attempts.
 
-                print("Error: Invalid letter.") # Notifies the player something went wrong.
+                print(Fore.RED + "Error: Invalid letter." + Fore.RESET) # Notifies the player something went wrong.
 
             iteration += 1 # Increment the iteration counter
 
@@ -245,13 +250,14 @@ class WordManager:
             print(f"\n{bar} {int(percentage * 100)}%\n") # Print the progress bar with percentage
 
             # Print the corresponding status message
-            if status.value >= LoadingBarStatus.DOWNLOADING_WORDS.value:
+            if status.value == LoadingBarStatus.DOWNLOADING_WORDS.value:
                 print("\nDownloading words...")
-            if status.value >= LoadingBarStatus.FILTERING_WORDS.value:
+                print(Fore.RED + "\nWARNING: " + Fore.RESET + "If this step takes too long, please restart the game and try again.")
+            if status.value == LoadingBarStatus.FILTERING_WORDS.value:
                 print("\nFiltering words...")
-            if status.value >= LoadingBarStatus.RANDOMISING_WORDS.value:
+            if status.value == LoadingBarStatus.RANDOMISING_WORDS.value:
                 print("\nRandomising words...")
-            if status.value >= LoadingBarStatus.CHOOSING_WORD.value:
+            if status.value == LoadingBarStatus.CHOOSING_WORD.value:
                 print("\nChoosing word...")
     
         sendLoadingBar(LoadingBarStatus.DOWNLOADING_WORDS) # Send loading screen
@@ -291,7 +297,7 @@ class WordManager:
         random.shuffle(word_list) # Shuffle the word list
         while True: # Loop to keep finding a word till it is valid
             self.word = random.choice(word_list) # Choose a random word
-            if self.word.isalpha(): # Ensure the word only has letters (Brown words had this issue where numbers would be outputted instead of words.)
+            if self.word.isalpha(): # Ensure the word only has letters (Brown words had this issue where numbers would sometimes be outputted instead of words.)
                 break
 
         sendLoadingBar(LoadingBarStatus.CHOOSING_WORD) # Send loading screen
@@ -404,7 +410,7 @@ class Themes:
             
             assets.getPlayerManager().setData(assets.logged_in_player, field.EQUIPPED_THEME, self.getName()) # Sets the theme to the selected theme
 
-    class Manager(DataManager):
+    class Manager (DataManager):
         """ Manages themes data """
         _DATAFILE_NAME = 'themes' # Only one file in this database. Sets the name of the database to 'themes'.
         

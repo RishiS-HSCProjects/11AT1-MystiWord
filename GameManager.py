@@ -354,12 +354,9 @@ class WordManager:
             
         def getCoins(self) -> int:
             """ Returns the constant amount of coins awarded for a win. """
-            if self == WordManager.Difficulties.EASY:
-                return 5
-            elif self == WordManager.Difficulties.MEDIUM:
-                return 10
-            elif self == WordManager.Difficulties.HARD:
-                return 15
+            if self == WordManager.Difficulties.EASY: return 5
+            elif self == WordManager.Difficulties.MEDIUM: return 7
+            elif self == WordManager.Difficulties.HARD: return 10
             raise ValueError("Unknown difficulty") # Raise error if the diffculty does not exist.
 
 class Themes:

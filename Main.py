@@ -370,6 +370,8 @@ def sendLoginFrom() -> None:
         """ Sends a sign in form to the user. """
         last_logged_in = assets.getLocalData().getDataField(LocalData.LocalDataFields.LAST_LOGGED_IN) # Get the last logged in player
 
+        last_logged_in = last_logged_in if assets.getPlayerManager().datafileExists(last_logged_in) else None # Ensure last_logged_in is valid
+
         form = InputForm("Sign In", settings=settings) # Creates a sign-in form
         form.registerTextInput( # Registers a text input with validation ensuring the user exists.
             "Username", # Input name

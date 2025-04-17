@@ -12,23 +12,6 @@ echo Application will start automatically.
 
 :: Print empty line and info line
 echo.
-echo Updating project libraries...
-
-:: Check if updater.cmd exists at the correct location
-if not exist "lib\updater.cmd" (
-    echo updater.cmd not found in lib directory.
-)
-
-cd lib
-
-:: If updater.cmd exists, run it and show the output in the console
-call updater.cmd || (
-    echo Updater failed. Check the output above for details.
-    echo Skipping to next steps...
-)
-
-:: Print empty line and info line
-echo.
 echo Installing python libraries...
 :: Install all required libraries for the project (suppress output unless there's an error)
 pip install nltk >nul 2>&1 || (

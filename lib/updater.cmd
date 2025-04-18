@@ -1,4 +1,4 @@
-:: Marker Disclaimer: All contents of this file have been AI-generated
+:: Marker Disclaimer: Most contents of this file have been AI-generated
 :: Updates the required APIs directly from GitHub.
 
 @echo off
@@ -8,6 +8,7 @@ setlocal enabledelayedexpansion
 ping -n 1 google.com >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo No internet connection detected. Please ensure your WiFi is connected. >&2
+    pause
     exit /b 1
 )
 
@@ -17,6 +18,7 @@ if exist test_permission.txt (
     del test_permission.txt
 ) else (
     echo Insufficient permissions to write in this directory. Please check your permissions. >&2
+    pause
     exit /b 1
 )
 
@@ -24,6 +26,7 @@ if exist test_permission.txt (
 where git >nul 2>nul
 if %ERRORLEVEL% neq 0 (
     echo Git is not installed or not in the system PATH. Please install Git before running this script. >&2
+    pause
     exit /b 1
 )
 

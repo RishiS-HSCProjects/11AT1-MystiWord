@@ -138,7 +138,7 @@ Stats:
                     )                   
 
 
-                form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the homepage
+                form.addOption(Fore.RED + "🔴 Back", sendHomePage, isDefault=True) # Adds option to go back to the homepage
 
                 form.send()
         form.addOption(Fore.YELLOW + "Leaderboards", sendLeaderboards)
@@ -163,7 +163,7 @@ Stats:
                         else f"Cost: {Fore.RED if cost > coins else Fore.GREEN}{cost} coins") # Display cost if not already purchased
                 )
 
-            form.addOption(Fore.RED + "🔴 Back", sendHomePage) # Adds option to go back to the homepage
+            form.addOption(Fore.RED + "🔴 Back", sendHomePage, isDefault=True) # Adds option to go back to the homepage
 
             form.send() # Send the form
 
@@ -349,7 +349,7 @@ Stats:
                 """ Function to handle the logout (at this point, only deleting the temporary logged_in_player field.) """
                 assets.logged_in_player = None # Properly log out the user
             form.addOption(Fore.GREEN + "✅ CONFIRM" + Style.RESET_ALL, handleLogout) # Adds option to confirm the new account. 
-            form.addOption(Fore.RED + "❌ Back" + Style.RESET_ALL, lambda: None) # Adds option cancel logout.
+            form.addOption(Fore.RED + "❌ Back" + Style.RESET_ALL, lambda: None, isDefault=True) # Adds option cancel logout.
             form.send() # Sends form
 
             sendHomePage() # Return to the homepage (or login page if user logged out.)
@@ -457,7 +457,7 @@ def sendLoginFrom() -> None:
   Games Played: {playerManager.getGamesPlayed(assets.get_guest_identifier())}""") # Display some guest stats to users can observe whether or not they want to override it.
             form.addOption(Fore.GREEN + "✅  Yes, continue guest account!" + Style.RESET_ALL, lambda: None) # Continues with existing profile
             form.addOption(Fore.RED + "❌  No, reset stats and create a new guest account!" + Style.RESET_ALL, createGuestProfile) # Overrides profile and creates a new guest account
-            form.addOption(Fore.LIGHTBLACK_EX + "Back to Login Page", sendLoginFrom) # Return back to login page
+            form.addOption(Fore.LIGHTBLACK_EX + "Back to Login Page", sendLoginFrom, isDefault=True) # Return back to login page
 
             form.send() # Sends form
         else:
@@ -468,9 +468,9 @@ def sendLoginFrom() -> None:
 
     assets.clear_console() # Clears the console
     settings = FormSettings() # Initialises common form settings
-    settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------🔒-------------->")
-    settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True)
-    settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True)
+    settings.editSetting(FormSettings.Setting.HEADER, f"{assets.getTitle()}\n\n<--------------🔒-------------->") # Configure form header
+    settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True) # Form to clear after every valid selection
+    settings.editSetting(FormSettings.Setting.CLEAN_FAILED_RESPONSES, 3) # Clean error response log every three failed attempts
 
     form = OptionForm("Get Started", "Please log in to get started! You can also play as a temporary guest.", settings) # Create Login Options Form
     form.addOption("🔐  Sign In", lambda: sendSignIn(), "Login to an existing account.") # Sign in option
@@ -482,6 +482,6 @@ def sendLoginFrom() -> None:
 
     sendHomePage() # Open home page unless any process is aborted.
 
-if __name__ == "__main__":
+if __name__ == "__main__": # Start program here
     assets.logged_in_player = None # Logs out player
-    sendHomePage() # Send homepage (usually will be the login page)
+    sendLoginFrom() # Send login page

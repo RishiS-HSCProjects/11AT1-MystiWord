@@ -3,14 +3,14 @@
         "name": "Fillin' Boxes",
         "stages": {
             "0": "Don't let all the boxes fill up!\n  1 | 2 | 3\n ---|---|---\n  4 | 5 | 6\n ---|---|---\n  7 | 8 | 9",
-            "1": "Don't let all the boxes fill up!\n  X | 2 | 3\n ---|---|---\n  4 | 5 | 6\n ---|---|---\n  7 | 8 | 9",
-            "2": "Don't let all the boxes fill up!\n  X | X | 3\n ---|---|---\n  4 | 5 | 6\n ---|---|---\n  7 | 8 | 9",
-            "3": "Don't let all the boxes fill up!\n  X | X | X\n ---|---|---\n  4 | 5 | 6\n ---|---|---\n  7 | 8 | 9",
-            "4": "Don't let all the boxes fill up!\n  X | X | X\n ---|---|---\n  X | 5 | 6\n ---|---|---\n  7 | 8 | 9",
-            "5": "Don't let all the boxes fill up!\n  X | X | X\n ---|---|---\n  X | X | 6\n ---|---|---\n  7 | 8 | 9",
-            "6": "Don't let all the boxes fill up!\n  X | X | X\n ---|---|---\n  X | X | X\n ---|---|---\n  7 | 8 | 9",
-            "7": "Don't let all the boxes fill up!\n  X | X | X\n ---|---|---\n  X | X | X\n ---|---|---\n  X | 8 | 9",
-            "8": "Don't let all the boxes fill up!\n  X | X | X\n ---|---|---\n  X | X | X\n ---|---|---\n  X | X | 9",
+            "1": "Don't let all the boxes fill up!\n  1 | 2 | 3\n ---|---|---\n  4 | 5 | 6\n ---|---|---\n  7 | 8 | X",
+            "2": "Don't let all the boxes fill up!\n  1 | 2 | 3\n ---|---|---\n  4 | 5 | 6\n ---|---|---\n  7 | X | X",
+            "3": "Don't let all the boxes fill up!\n  1 | 2 | 3\n ---|---|---\n  4 | 5 | 6\n ---|---|---\n  X | X | X",
+            "4": "Don't let all the boxes fill up!\n  1 | 2 | 3\n ---|---|---\n  4 | 5 | X\n ---|---|---\n  X | X | X",
+            "5": "Don't let all the boxes fill up!\n  1 | 2 | 3\n ---|---|---\n  4 | X | X\n ---|---|---\n  X | X | X",
+            "6": "Don't let all the boxes fill up!\n  1 | 2 | 3\n ---|---|---\n  X | X | X\n ---|---|---\n  X | X | X",
+            "7": "Don't let all the boxes fill up!\n  1 | 2 | X\n ---|---|---\n  X | X | X\n ---|---|---\n  X | X | X",
+            "8": "Don't let all the boxes fill up!\n  1 | X | X\n ---|---|---\n  X | X | X\n ---|---|---\n  X | X | X",
             "9": "Don't let all the boxes fill up!\n  X | X | X\n ---|---|---\n  X | X | X\n ---|---|---\n  X | X | X"
         },
         "cost": 50
@@ -18,16 +18,16 @@
     "bridge": {
         "name": "Bridge",
         "stages": {
-            "0": "   O\n  ----------- ________",
-            "1": "   O\n  --------_-  ________",
-            "2": "   O\n  -------_    ________",
-            "3": "   O\n  ------      ________",
-            "4": "   O\n  -__--       ________",
-            "5": "   O\n  -_--        ________",
-            "6": "   O\n  _--         ________",
-            "7": "   O\n  --          ________",
-            "8": "   O\n  _-          ________",
-            "9": "\n   O             ________\n   ^"
+            "0": "Don't let the bridge be destroyed!\n   O\n  ----------- ________",
+            "1": "Don't let the bridge be destroyed!\n   O\n  --------_-  ________",
+            "2": "Don't let the bridge be destroyed!\n   O\n  -------_    ________",
+            "3": "Don't let the bridge be destroyed!\n   O\n  ------      ________",
+            "4": "Don't let the bridge be destroyed!\n   O\n  -__--       ________",
+            "5": "Don't let the bridge be destroyed!\n   O\n  -_--        ________",
+            "6": "Don't let the bridge be destroyed!\n   O\n  _--         ________",
+            "7": "Don't let the bridge be destroyed!\n   O\n  --          ________",
+            "8": "Don't let the bridge be destroyed!\n   O\n  _-          ________",
+            "9": "Don't let the bridge be destroyed!\n\n   O             ________\n   ^"
         },
         "cost": 100
     },

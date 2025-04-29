@@ -2,7 +2,6 @@ from colorama import Fore, Style
 
 from lib.libData.DataManager import *
 from lib.libData.DataManager import DataFields
-import GlobalAssets as assets
 
 class LocalDataFields (DataFields):
     """ Enum class with datafields storing local data """
@@ -43,11 +42,11 @@ class LocalDataManager (DataManager):
         """ Check if the DataField is an instance of LocalDataFields.Settings
             Strictly private function. Use `LocalDataManager.getDataField()`.
         """
-        data = super().getData(identifier)  # Get the data from the parent class
+        data = super().getData(identifier) # Get the data from the parent class
 
         # Only handle LocalDataFields.Settings specifically
         if isinstance(key, LocalDataFields.Settings):
-            return data[LocalDataFields.SETTINGS_CONST][key.name]  # Get the settings data
+            return data[LocalDataFields.SETTINGS_CONST][key.name] # Get the settings data
 
         # If not LocalDataFields.Settings, just return the regular data
         return data[key] if key is not None else data
@@ -65,18 +64,18 @@ class LocalDataManager (DataManager):
             data = self.getData(identifier) # Get the data from the file
 
             if LocalDataFields.SETTINGS_CONST not in data: # Ensure the "settings" key exists in the data
-                data[LocalDataFields.SETTINGS_CONST] = {}  # Initialize settings if not present
+                data[LocalDataFields.SETTINGS_CONST] = {} # Initialize settings if not present
 
             # Set the new value under "settings" for the specific field
-            data[LocalDataFields.SETTINGS_CONST][field.name] = newVal  # Use field.name for clarity
+            data[LocalDataFields.SETTINGS_CONST][field.name] = newVal # Use field.name for clarity
 
-            path = self.getFormattedFilename(identifier)# Get the formatted file path
+            path = self.getFormattedFilename(identifier) # Get the formatted file path
 
             # Write the updated data back to the file
             try:
                 with open(path, 'w') as file:
                     json.dump(data, file, indent=4)
-            except Exception as e:  # Handle any errors that occur during the file write
+            except Exception as e: # Handle any errors that occur during the file write
                 raise DataManagerErrors.PathNotExists(str(e))
         else:
             # For other types of fields, call the parent class's setData method

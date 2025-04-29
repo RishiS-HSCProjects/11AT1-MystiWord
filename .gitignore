@@ -10,7 +10,6 @@
 *.userosscache
 *.sln.docstates
 MystiWord.egg-info*
-lib/*
 *.json
 !themes.json
 

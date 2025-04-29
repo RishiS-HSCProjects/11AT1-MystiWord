@@ -1,4 +1,3 @@
-import sys
 import random
 from enum import Enum
 from colorama import Fore, Back, Style, init
@@ -16,13 +15,17 @@ class Game:
 
     def __init__(self) -> None:
         """ Initialise game """
-        difficulty_form = OptionForm("Play Guess the Word!", "Guess letters to spell out a word!\n\nYou get more XP the less incorrect guesses you make. XP can get you ranked high on the leaderboards!\n\nYou lose a life for every incorrect letter you guess. You have 10 lives, so choose wisely!.") # Create a choose difficulty form
+        difficulty_form = OptionForm("Play Guess the Word!", # Create a choose difficulty form
+                                     "Guess letters to spell out a word!\n\n" +
+                                     f"You get more {Fore.GREEN}XP{Fore.RESET} the less incorrect guesses you make. XP can get you ranked high on the leaderboards!\n\nYou {Fore.RED}lose a life{Fore.RESET} for every incorrect letter you guess. {Fore.YELLOW}You only have 10 lives, so guess wisely{Fore.RESET}!." + 
+                                     (f"\n\n{Fore.CYAN}Play Guide:\n - {Fore.RED}♥️{Fore.CYAN} represents how many lives you have remaining.\n - {Fore.YELLOW}♥️{Fore.CYAN} represents the lives you will need to retain to get a new personal best!" if assets.getLocalData().getDataField(LocalDataFields.Settings.SHOW_HEARTS) else "") # Show hearts guide if hearts are enabled
+                                    )
+
         difficulty_form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Choose Difficulty") # Sets options text to Choose Difficulty
 
-
-        difficulty_form.addOption(WordManager.Difficulties.EASY.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.EASY)) # Create option for difficulty
-        difficulty_form.addOption(WordManager.Difficulties.MEDIUM.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.MEDIUM)) # Create option for difficulty
-        difficulty_form.addOption(WordManager.Difficulties.HARD.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.HARD)) # Create option for difficulty
+        difficulty_form.addOption(WordManager.Difficulties.EASY.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.EASY)) # Create option for easy difficulty
+        difficulty_form.addOption(WordManager.Difficulties.MEDIUM.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.MEDIUM)) # Create option for medium difficulty
+        difficulty_form.addOption(WordManager.Difficulties.HARD.formatDifficulty(upperCase=True), lambda _: self.createWordManager(WordManager.Difficulties.HARD)) # Create option for hard difficulty
         difficulty_form.addOption(Back.RED + Fore.WHITE + "Random", lambda _: self.createWordManager()) # WordData will handle cases where the difficulty is not set.
         
         from Main import sendHomePage # Import home page
@@ -212,7 +215,7 @@ class WordManager:
         """ Initialise word manager. """
         if not isinstance(difficulty, WordManager.Difficulties):
             # If difficulty was set to None (for randomisation) or an invalid type, randomise difficulty to avoid an error.
-            difficulty = random.choice(list(WordManager.Difficulties))  # Randomly select a difficulty
+            difficulty = random.choice(list(WordManager.Difficulties)) # Randomly select a difficulty
         
         self.difficulty = difficulty # Sets difficulty
 
@@ -232,9 +235,9 @@ class WordManager:
 
         def sendLoadingBar(status: "LoadingBarStatus") -> None:
             """ Prints a progress bar to show progress of game creation """
-            assets.clear_console()  # Clears the console
+            assets.clear_console() # Clears the console
 
-            print("Game starting soon...\n")  # Loading message
+            print("Game starting soon...\n") # Loading message
 
             # Calculate the percentage of the progress bar filled based on the current status
             total_steps = len(LoadingBarStatus) - 1 # Subtract 1 because we want a range from 0 to the last status
@@ -245,13 +248,14 @@ class WordManager:
             filled_length = int(bar_length * percentage) # Calculate the number of filled blocks based on the percentage
 
             # Create the progress bar string
-            bar = Style.BRIGHT + '[' + Fore.GREEN + '=' * filled_length + Fore.RED + ' ' * (bar_length - filled_length) + Style.RESET_ALL + ']'  # Progress bar
+            bar = Style.BRIGHT + '[' + Fore.GREEN + '=' * filled_length + Fore.RED + ' ' * (bar_length - filled_length) + Style.RESET_ALL + ']' # Progress bar
 
             print(f"\n{bar} {int(percentage * 100)}%\n") # Print the progress bar with percentage
 
             # Print the corresponding status message
             if status.value == LoadingBarStatus.DOWNLOADING_WORDS.value:
                 print("\nDownloading words...")
+                print(Fore.GREEN + "\nFetching word repository. This should take a maximum of 30 seconds.")
                 print(Fore.RED + "\nWARNING: " + Fore.RESET + "If this step takes too long, please restart the game and try again.")
             if status.value == LoadingBarStatus.FILTERING_WORDS.value:
                 print("\nFiltering words...")
@@ -370,15 +374,15 @@ class Themes:
 
         def getName(self) -> str:
             """ Returns the name of the theme. """
-            theme_data = Themes.Manager().getTheme(self)  # Fetch the theme data
+            theme_data = Themes.Manager().getTheme(self) # Fetch the theme data
 
             return theme_data.get('name')  # Fetch the specific theme data
 
         def getStage(self, stage: int) -> str:
             """ Returns the name of the theme. """
-            theme_data = Themes.Manager().getTheme(self)  # Fetch the theme data
+            theme_data = Themes.Manager().getTheme(self) # Fetch the theme data
 
-            return theme_data.get('stages').get(f'{stage}')  # Fetch the specific theme data
+            return theme_data.get('stages').get(f'{stage}') # Fetch the specific theme data
         
         def getCost(self) -> int:
             """ Returns the cost of the theme. """
@@ -441,7 +445,7 @@ class Themes:
 
         def getData(self, identifier: str = None, key: "Themes.Themes" = None) -> dict:
             """ Retrieves data from the database for the given identifier and optional key. """
-            data = super().getData(self._DATAFILE_NAME)  # Fetch data from parent class. Force search in the (only) datafile.
+            data = super().getData(self._DATAFILE_NAME) # Fetch data from parent class. Force search in the (only) datafile.
 
             # If key is provided, return the specific theme data, otherwise return all data
             if key is not None:

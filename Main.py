@@ -90,7 +90,7 @@ Stats:
                         (player, value) # Store a set of tuples as (player, value)
                         for player in players if # Iterates through the players and saves them as a tuple if the following conditions are met:
                             player != assets.get_guest_identifier() # Player is not a guest (guest accounts are not allowed to be in leaderboards.)
-                            and isinstance((value := data(player)), (int, float))  # Assign the result of data(player) to 'value' using a Walrus Operator and check if it is a number
+                            and isinstance((value := data(player)), (int, float)) # Assign the result of data(player) to 'value' using a Walrus Operator and check if it is a number
                     ]
 
                     return sorted(ordered_players, key=lambda x: x[1], reverse=True) # Sort players based on the second item in the tuple (the value)
@@ -124,19 +124,20 @@ Stats:
                 for leaderboard in list(LeaderboardData):
                     form.addOption(
                         leaderboard.getFormattedName(),
-                        lambda self=form, leaderboard=leaderboard: self.setBody( # Change the body to the selected leaderboard
+                        lambda self=form, leaderboard=leaderboard: self.setBody( 
                             f"{guest_warning if guest_warning else ''}\n" # Displays guest warning if player is guest
                             f"{leaderboard.getFormattedName()} Leaderboard{Style.RESET_ALL}:\n" # Displays form title
-                            + "\n".join([ # List every leaderboard entry in a new line.
-                                # For each player in the top 10, show their rank, name (or YOU if it's the current player), and the value
-                                f"{index + 1}. " # Display rank
-                                f"{Fore.CYAN}{f'{Style.BRIGHT + Back.LIGHTBLACK_EX}YOU' if player[0] == assets.logged_in_player else player[0]}: "  # Highlight 'YOU' if current player (otherwise just insert the player name)
-                                f"{player[1]}{Style.RESET_ALL}"  # Display score with styling reset
-                                for index, player in enumerate(leaderboard.orderPlayers()[:10])  # Repeat above for the top ten players.
-                            ])
+                            + (
+                                "\n".join([ # List every leaderboard entry in a new line.
+                                    # For each player in the top 10, show their rank, name (or YOU if it's the current player), and the value
+                                    f"{index + 1}. " # Display rank
+                                    f"{Fore.CYAN}{f'{Style.BRIGHT + Back.LIGHTBLACK_EX}YOU' if player[0] == assets.logged_in_player else player[0]}: " # Highlight 'YOU' if current player (otherwise just insert the player name)
+                                    f"{player[1]}{Style.RESET_ALL}" # Display score with styling reset
+                                    for index, player in enumerate(leaderboard.orderPlayers()[:10]) # Repeat above for the top ten players.
+                                ]) if leaderboard.orderPlayers() else Fore.RED + "No players meet the criteria for this leaderboard." # Check if the leaderboard is empty
+                            )
                         )
                     )                   
-
 
                 form.addOption(Fore.RED + "🔴 Back", sendHomePage, isDefault=True) # Adds option to go back to the homepage
 
@@ -145,9 +146,13 @@ Stats:
     
         def sendShop() -> None:
             """ Function to send the shop UI. """
-            form = OptionForm("Shop", "Spend your coins on cool items!", settings=settings) # Create shop form
+            form = OptionForm("Shop", settings=settings) # Create shop form
+            form.setBody(
+                "Spend coins to get cool themes and cosmetics to add to the game board!\n\n" +
+                "These can replace the red and yellow hearts currently shown on the board (disable in settings)."
+            )
 
-            form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Select an Item") # Sets options text
+            form.settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Select a Theme") # Sets options text
 
             coins = playerManager.getData(assets.logged_in_player, PlayerData.PlayerDataFields.COINS) # Get number of coins the player has in their bank.
             form.addSeparator(Fore.YELLOW + f"Coins: {coins}") # Display number of coins
@@ -322,15 +327,17 @@ Stats:
 
                         # Proceed with deletion if username and password are correct
                         playerManager.deleteDatafile(assets.logged_in_player) # Deletes the player's data file
-                        assets.logged_in_player = None  # Logout the player
+                        assets.logged_in_player = None # Logout the player
                         assets.getLocalData().setDataField(LocalData.LocalDataFields.LAST_LOGGED_IN, None)
 
-                        sendHomePage()  # Redirect to the homepage (i.e. login page)
+                        sendHomePage() # Redirect to the homepage (i.e. login page)
 
-                    form.addOption(Fore.GREEN + "✅ CONFIRM DELETE" + Style.RESET_ALL, handleAccountDeletion)  # Confirm delete
-                    form.addOption(Fore.RED + "❌ CANCEL" + Style.RESET_ALL, sendSettingsMenu, isDefault=True)  # Cancel action and return to settings
+                    form.addSeparator()
+                    form.addOption(Fore.GREEN + "✅ CONFIRM DELETE" + Style.RESET_ALL, handleAccountDeletion) # Confirm delete
+                    form.addOption(Fore.RED + "❌ CANCEL" + Style.RESET_ALL, sendSettingsMenu, isDefault=True) # Cancel action and return to settings
+                    form.addSeparator()
 
-                    form.send()  # Show confirmation form
+                    form.send() # Show confirmation form
 
                 form.addOption(Fore.LIGHTCYAN_EX + "Change Username", changeUsername) # Option to change username
                 form.addOption(Fore.LIGHTCYAN_EX + "Change Password", changePassword) # Option to change password

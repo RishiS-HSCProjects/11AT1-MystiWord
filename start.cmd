@@ -1,3 +1,9 @@
+:: Marker note:
+:: If you are facing any issues with running the program, please try executing start.cmd first and trying again.
+:: Running this CMD will download all required libaries for this project that you may not already have downloaded.
+
+:: Disclaimer: This file has been written with the assistance of AI
+
 @echo off
 
 :: Set app title
